@@ -7,6 +7,21 @@ if (started) {
   app.quit();
 }
 
+async function initTwitchService() {
+  try {
+    // AQUÍ ocurre la magia: Importamos Twurple dinámicamente
+    const { RefreshingAuthProvider } = await import('@twurple/auth');
+    const { ChatClient } = await import('@twurple/chat');
+    const { ApiClient } = await import('@twurple/api');
+    const { EventSubWsListener } = await import('@twurple/eventsub-ws');
+    const fs = await import('node:fs/promises'); // fs/promises también es mejor importarlo así si da problemas
+
+    console.log("Librerías de Twurple cargadas correctamente");
+  } catch (error) {
+    console.error("Error al iniciar Twitch:", error);
+  }
+}
+
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
