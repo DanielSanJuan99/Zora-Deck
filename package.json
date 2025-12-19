@@ -1,6 +1,5 @@
 {
   "name": "zora-deck",
-  "type": "module",
   "productName": "zora-deck",
   "version": "1.0.0",
   "description": "My Electron application description",
