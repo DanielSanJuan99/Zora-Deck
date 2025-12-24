@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron'; // Añadido ipcMain
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -14,7 +14,7 @@ async function initTwitchService() {
     const { ChatClient } = await import('@twurple/chat');
     const { ApiClient } = await import('@twurple/api');
     const { EventSubWsListener } = await import('@twurple/eventsub-ws');
-    const fs = await import('node:fs/promises'); // fs/promises también es mejor importarlo así si da problemas
+    const fs = await import('node:fs/promises'); 
 
     console.log("Librerías de Twurple cargadas correctamente");
   } catch (error) {
@@ -27,6 +27,8 @@ const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    frame: false, // Sin marco nativo
+    backgroundColor: '#242424', // Fondo negro inicial
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -39,18 +41,39 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Opcional: Open the DevTools.
+  // mainWindow.webContents.openDevTools();
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// --- CONTROL DE VENTANA PERSONALIZADA ---
+// Escuchamos las órdenes que vienen desde el preload.js
+
+ipcMain.on('control:minimize', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) win.minimize();
+});
+
+ipcMain.on('control:maximize', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  }
+});
+
+ipcMain.on('control:close', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) win.close();
+});
+// ----------------------------------------
+
 app.whenReady().then(() => {
   createWindow();
+  initTwitchService(); // Llamamos a tu servicio de Twitch al arrancar
 
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -58,14 +81,8 @@ app.whenReady().then(() => {
   });
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.

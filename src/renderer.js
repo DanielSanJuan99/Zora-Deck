@@ -31,3 +31,20 @@ import './index.css';
 console.log(
   '👋 This message is being logged by "renderer.js", included via Vite',
 );
+window.addEventListener('DOMContentLoaded', () => {
+  const btnMinimize = document.getElementById('minimize');
+  const btnMaximize = document.getElementById('maximize');
+  const btnClose = document.getElementById('close');
+
+  if (btnMinimize) {
+    btnMinimize.onclick = () => window.windowAPI.minimize(); // USAR windowAPI
+  }
+
+  if (btnMaximize) {
+    btnMaximize.onclick = () => window.windowAPI.maximize(); // USAR windowAPI
+  }
+
+  if (btnClose) {
+    btnClose.onclick = () => window.windowAPI.close(); // USAR windowAPI
+  }
+});

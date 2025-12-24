@@ -2,12 +2,28 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
-
+    <title>Zora Deck</title>
+    <link rel="stylesheet" href="./index.css">
   </head>
+
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
+    <header class="custom-header">
+      <div class="drag-region">
+        <span class="title">Zora Deck</span>
+      </div>
+      
+      <div class="window-controls">
+        <button id="minimize" class="control-btn">─</button>
+        <button id="maximize" class="control-btn">▢</button>
+        <button id="close" class="control-btn close">✕</button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <h1>Hello World!</h1>
+      <p>Welcome to your Electron application.</p>
+    </main>
+
     <script type="module" src="/src/renderer.js"></script>
   </body>
 </html>

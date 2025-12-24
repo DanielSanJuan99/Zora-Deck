@@ -1,8 +1,59 @@
-body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-    sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+.custom-header {
+  background-color: #27C2F5;
+  color: white;
+  height: 35px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none; /* Evita que se seleccione el texto */
+}
+
+.drag-region {
+  flex-grow: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 15px;
+  /* IMPORTANTE: Esto permite arrastrar la ventana */
+  -webkit-app-region: drag; 
+}
+
+.window-controls {
+  display: flex;
+  height: 100%;
+  /* IMPORTANTE: Los botones no deben ser arrastrables */
+  -webkit-app-region: no-drag; 
+}
+
+.control-btn {
+  width: 45px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn.close:hover {
+  background: #e81123; /* Color rojo clásico de cerrar */
+}
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #242424;
+  color: white; /* Para que el texto sea legible por defecto */
+  overflow: hidden; /* Evita scrolls innecesarios si usas un layout fijo */
+  font-family: sans-serif;
+}
+.main-content {
+  background-color: #242424;
+  height: calc(100vh - 35px); /* Resta la altura de tu header morado */
+  padding: 20px;
 }
