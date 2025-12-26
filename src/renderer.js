@@ -48,3 +48,33 @@ window.addEventListener('DOMContentLoaded', () => {
     btnClose.onclick = () => window.windowAPI.close(); // USAR windowAPI
   }
 });
+
+const menuContainers = document.querySelectorAll('.menu-item-container');
+
+menuContainers.forEach(container => {
+  const btn = container.querySelector('.menu-btn');
+  
+  btn.addEventListener('click', (e) => {
+    // Si ya estaba abierto, se cierra; si no, se abre y cierra los demás
+    const wasActive = container.classList.contains('active');
+    
+    menuContainers.forEach(c => c.classList.remove('active'));
+    
+    if (!wasActive) {
+      container.classList.add('active');
+    }
+    
+    e.stopPropagation(); // Evita que el clic llegue al documento
+  });
+});
+
+// Cerrar menús al hacer clic en cualquier otra parte de la pantalla
+document.addEventListener('click', () => {
+  menuContainers.forEach(c => c.classList.remove('active'));
+});
+
+// Hacer que el "Salir" del menú también funcione
+const btnExit = document.getElementById('menu-exit');
+if (btnExit) {
+  btnExit.addEventListener('click', () => window.windowAPI.close());
+}

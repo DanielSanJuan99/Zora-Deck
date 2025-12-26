@@ -28,7 +28,7 @@ const createWindow = () => {
     width: 800,
     height: 600,
     frame: false, // Sin marco nativo
-    backgroundColor: '#242424', // Fondo negro inicial
+    backgroundColor: '#272a33', // Fondo negro inicial
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },

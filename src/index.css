@@ -1,5 +1,5 @@
 .custom-header {
-  background-color: #27C2F5;
+  background-color: #006485;
   color: white;
   height: 35px;
   display: flex;
@@ -14,14 +14,12 @@
   display: flex;
   align-items: center;
   padding-left: 15px;
-  /* IMPORTANTE: Esto permite arrastrar la ventana */
   -webkit-app-region: drag; 
 }
 
 .window-controls {
   display: flex;
   height: 100%;
-  /* IMPORTANTE: Los botones no deben ser arrastrables */
   -webkit-app-region: no-drag; 
 }
 
@@ -40,20 +38,87 @@
 }
 
 .control-btn.close:hover {
-  background: #e81123; /* Color rojo clásico de cerrar */
+  background: #e81123; 
 }
 html, body, #app {
   margin: 0;
   padding: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #242424;
-  color: white; /* Para que el texto sea legible por defecto */
-  overflow: hidden; /* Evita scrolls innecesarios si usas un layout fijo */
+  background-color: #272a33;
+  color: white; 
+  overflow: hidden;
   font-family: sans-serif;
 }
 .main-content {
-  background-color: #242424;
-  height: calc(100vh - 35px); /* Resta la altura de tu header morado */
+  background-color: #272a33;
+  height: calc(100vh - 35px); 
   padding: 20px;
+}
+
+.menu-bar {
+  display: flex;
+  background-color: #30384b; /* Un tono gris muy oscuro */
+  padding: 0 10px;
+  border-bottom: 1px solid #333;
+  -webkit-app-region: no-drag; /* Para que se pueda hacer clic */
+}
+.menu-item-container {
+  position: relative;
+}
+
+/* El botón parece solo texto */
+.menu-btn {
+  background: none;
+  border: none;
+  color: #bbb;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.menu-btn:hover, .menu-item-container.active .menu-btn {
+  background-color: #30384b;
+  color: white;
+}
+
+/* El menú desplegable */
+.menu-dropdown {
+  display: none; /* Oculto por defecto */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #252525;
+  min-width: 160px;
+  border: 1px solid #444;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+  z-index: 999;
+}
+
+/* Clase para mostrar el menú cuando se hace clic */
+.menu-item-container.active .menu-dropdown {
+  display: block;
+}
+
+.menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 15px;
+  background: none;
+  border: none;
+  color: #eee;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menu-dropdown button:hover {
+  background-color: #007acc; /* Azul de selección tipo Windows/OBS */
+}
+
+.menu-dropdown hr {
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 4px 0;
 }
