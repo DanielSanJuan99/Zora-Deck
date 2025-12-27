@@ -59,12 +59,13 @@ html, body, #app {
 .menu-bar {
   display: flex;
   background-color: #30384b; /* Un tono gris muy oscuro */
-  padding: 0 10px;
+  padding: 0 5px;
   border-bottom: 1px solid #333;
   -webkit-app-region: no-drag; /* Para que se pueda hacer clic */
 }
 .menu-item-container {
   position: relative;
+  display: inline-block;
 }
 
 /* El botón parece solo texto */
@@ -72,9 +73,10 @@ html, body, #app {
   background: none;
   border: none;
   color: #bbb;
-  padding: 6px 12px;
+  padding: 8px 15px;
   font-size: 13px;
   cursor: pointer;
+  display: block;
   transition: background 0.2s, color 0.2s;
 }
 
@@ -90,7 +92,7 @@ html, body, #app {
   top: 100%;
   left: 0;
   background-color: #252525;
-  min-width: 160px;
+  min-width: 180px;
   border: 1px solid #444;
   box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
   z-index: 999;
@@ -104,7 +106,7 @@ html, body, #app {
 .menu-dropdown button {
   display: block;
   width: 100%;
-  padding: 8px 15px;
+  padding: 8px 18px;
   background: none;
   border: none;
   color: #eee;
@@ -117,7 +119,7 @@ html, body, #app {
   background-color: #007acc; /* Azul de selección tipo Windows/OBS */
 }
 
-.menu-dropdown hr {
+.menu-dropdown{
   border: 0;
   border-top: 1px solid #444;
   margin: 4px 0;
