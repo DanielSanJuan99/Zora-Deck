@@ -31,21 +31,22 @@ import './index.css';
 console.log(
   '👋 This message is being logged by "renderer.js", included via Vite',
 );
-window.addEventListener('DOMContentLoaded', () => {
+// Renderiza los controles de la ventana personalizada
+globalThis.addEventListener('DOMContentLoaded', () => {
   const btnMinimize = document.getElementById('minimize');
   const btnMaximize = document.getElementById('maximize');
   const btnClose = document.getElementById('close');
 
   if (btnMinimize) {
-    btnMinimize.onclick = () => window.windowAPI.minimize(); // USAR windowAPI
+    btnMinimize.onclick = () => globalThis.windowAPI.minimize(); // USAR windowAPI
   }
 
   if (btnMaximize) {
-    btnMaximize.onclick = () => window.windowAPI.maximize(); // USAR windowAPI
+    btnMaximize.onclick = () => globalThis.windowAPI.maximize(); // USAR windowAPI
   }
 
   if (btnClose) {
-    btnClose.onclick = () => window.windowAPI.close(); // USAR windowAPI
+    btnClose.onclick = () => globalThis.windowAPI.close(); // USAR windowAPI
   }
 });
 
@@ -76,5 +77,13 @@ document.addEventListener('click', () => {
 // Hacer que el "Salir" del menú también funcione
 const btnExit = document.getElementById('menu-exit');
 if (btnExit) {
-  btnExit.addEventListener('click', () => window.windowAPI.close());
+  btnExit.addEventListener('click', () => globalThis.windowAPI.close());
 }
+
+const btnExample = document.querySelectorAll('.button-container')
+btnExample.forEach(button => {
+  button.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    alert('¡Botón funcionando!');
+  });
+});

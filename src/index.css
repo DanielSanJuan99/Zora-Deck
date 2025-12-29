@@ -124,3 +124,15 @@ html, body, #app {
   border-top: 1px solid #444;
   margin: 4px 0;
 }
+
+/* Clase y estilo para botones en div */
+.button-container {
+  margin-top: 20px;
+  background-color: white;
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.option-container {
+  background-color: #333;
+}
