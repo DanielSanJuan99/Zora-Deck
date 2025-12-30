@@ -1,8 +1,138 @@
-body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-    sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+.custom-header {
+  background-color: #006485;
+  color: white;
+  height: 35px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none; /* Evita que se seleccione el texto */
+}
+
+.drag-region {
+  flex-grow: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 15px;
+  -webkit-app-region: drag; 
+}
+
+.window-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag; 
+}
+
+.control-btn {
+  width: 45px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn.close:hover {
+  background: #e81123; 
+}
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #272a33;
+  color: white; 
+  overflow: hidden;
+  font-family: sans-serif;
+}
+.main-content {
+  background-color: #272a33;
+  height: calc(100vh - 35px); 
+  padding: 20px;
+}
+
+.menu-bar {
+  display: flex;
+  background-color: #30384b; /* Un tono gris muy oscuro */
+  padding: 0 5px;
+  border-bottom: 1px solid #333;
+  -webkit-app-region: no-drag; /* Para que se pueda hacer clic */
+}
+.menu-item-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* El botón parece solo texto */
+.menu-btn {
+  background: none;
+  border: none;
+  color: #bbb;
+  padding: 8px 15px;
+  font-size: 13px;
+  cursor: pointer;
+  display: block;
+  transition: background 0.2s, color 0.2s;
+}
+
+.menu-btn:hover, .menu-item-container.active .menu-btn {
+  background-color: #30384b;
+  color: white;
+}
+
+/* El menú desplegable */
+.menu-dropdown {
+  display: none; /* Oculto por defecto */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #252525;
+  min-width: 180px;
+  border: 1px solid #444;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+  z-index: 999;
+}
+
+/* Clase para mostrar el menú cuando se hace clic */
+.menu-item-container.active .menu-dropdown {
+  display: block;
+}
+
+.menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 18px;
+  background: none;
+  border: none;
+  color: #eee;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menu-dropdown button:hover {
+  background-color: #007acc; /* Azul de selección tipo Windows/OBS */
+}
+
+.menu-dropdown{
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 4px 0;
+}
+
+/* Clase y estilo para botones en div */
+.button-container {
+  margin-top: 20px;
+  background-color: white;
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.option-container {
+  background-color: #333;
 }

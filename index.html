@@ -1,13 +1,57 @@
 <!doctype html>
-<html>
+<html lang="es-CL">
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
-
+    <title>Zora Deck</title>
+    <link rel="stylesheet" href="./index.css">
   </head>
+
   <body>
-    <h1>💖 Hello World!</h1>
-    <p>Welcome to your Electron application.</p>
+    <header class="custom-header">
+      <div class="drag-region">
+        <span class="title">Zora Deck</span>
+      </div>
+      
+      <div class="window-controls">
+        <button id="minimize" class="control-btn">─</button>
+        <button id="maximize" class="control-btn">▢</button>
+        <button id="close" class="control-btn close">✕</button>
+      </div>
+    </header>
+    
+    <nav class="menu-bar">
+      <div class="menu-item-container">
+        <button class="menu-btn">Perfil</button>
+        <div class="menu-dropdown">
+          <button>Ajustes</button>
+        </div>
+      </div>
+
+      <div class="menu-item-container">
+        <button class="menu-btn">Workshop</button>
+        <div class="menu-dropdown">
+          <button>Explorar</button>
+          <button>Mis Diseños</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="option-container" hidden>
+      <button id="menu-exit" class="option-btn">Salir</button>
+    </div>
+
+    <!-- Crear Sidebar como prueba -->
+
+    <main class="main-content">
+      <h1>Hello World!</h1>
+      <p>Welcome to your Electron application.</p>
+      
+      <!-- Crear Botón bloque de prueba -->
+      <div class="button-container">
+        <button class="custom-button">Botón de Prueba</button>
+      </div>
+    </main>
+
     <script type="module" src="/src/renderer.js"></script>
   </body>
 </html>
