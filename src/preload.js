@@ -5,5 +5,6 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('windowAPI', {
   minimize: () => ipcRenderer.send('control:minimize'),
   maximize: () => ipcRenderer.send('control:maximize'),
-  close: () => ipcRenderer.send('control:close')
+  close: () => ipcRenderer.send('control:close'),
+  showContextMenu: (x, y) => ipcRenderer.send('context-menu:show', { x, y })
 });

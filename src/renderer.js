@@ -80,10 +80,24 @@ if (btnExit) {
   btnExit.addEventListener('click', () => globalThis.windowAPI.close());
 }
 
+// Ejemplo de botón que muestra un pequeño menú
 const btnExample = document.querySelectorAll('.button-container')
-btnExample.forEach(button => {
-  button.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    alert('¡Botón funcionando!');
-  });
+console.log('1) Se encuentran ' + btnExample.length + ' botones de ejemplo.');
+// btnExample.forEach(button => {
+//   button.addEventListener('contextmenu', (e) => {
+//     e.preventDefault();
+//     console.log('2) Se detecta click derecho en botón de ejemplo.');
+
+//     if (window.windowAPI) {
+//       window.windowAPI.showContextMenu();
+//       console.log('3) windowAPI está disponible.');
+//     } else {
+//       console.log('ERROR: windowAPI NO está disponible.');
+//     }
+//     globalThis.windowAPI.showContextMenu();
+//   });
+// });
+window.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // Bloquea el menú nativo de Chrome/Chromium
+    window.windowAPI.showContextMenu(e.x, e.y);
 });

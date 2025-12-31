@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'; // Añadido ipcMain
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'; // Añadido ipcMain
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -31,6 +31,9 @@ const createWindow = () => {
     backgroundColor: '#272a33', // Fondo negro inicial
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
     },
   });
 
@@ -69,6 +72,30 @@ ipcMain.on('control:close', () => {
   if (win) win.close();
 });
 // ----------------------------------------
+
+// despliegue del menú contextual
+ipcMain.on('context-menu:show', (e, params) => {
+  console.log('4) Mostrando menú contextual desde el proceso principal.');
+  const template = [
+    {
+      label: 'Opción 1',
+      click: () => { console.log('5) Opción detectada'); }
+    },
+    { type: 'separator' },
+    { label: 'Copiar Deck', role: 'copy' },
+    { label: 'Eliminar Deck', role: 'delete' }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  const win = BrowserWindow.fromWebContents(e.sender);
+  setTimeout(() => {
+    menu.popup({ 
+      window: win,
+      x: Math.round(params.x),
+      y: Math.round(params.y)
+    })
+  }, 100)
+})
 
 app.whenReady().then(() => {
   createWindow();
