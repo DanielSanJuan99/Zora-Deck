@@ -127,12 +127,25 @@ html, body, #app {
 
 /* Clase y estilo para botones en div */
 .button-container {
+  text-align: center;
   margin-top: 20px;
-  background-color: white;
+  background-color: #333;
   padding: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: 0 0 10px rgba(0,0,0,1);
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
 }
 
-.option-container {
-  background-color: #333;
+.button-container:hover{
+  background-color: #006485;
+}
+
+.twitch {
+  background-color: #6441a5;
+}
+
+.twitch:hover {
+  background-color: #7b59c5;
 }

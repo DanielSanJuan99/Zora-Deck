@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain } from 'electron'; // Añadido ipcMain
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'; // Añadido ipcMain
 import path from 'node:path';
+import http from 'node:http';
 import started from 'electron-squirrel-startup';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -31,6 +32,9 @@ const createWindow = () => {
     backgroundColor: '#272a33', // Fondo negro inicial
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
     },
   });
 
@@ -70,6 +74,30 @@ ipcMain.on('control:close', () => {
 });
 // ----------------------------------------
 
+// despliegue del menú contextual
+ipcMain.on('context-menu:show', (e, params) => {
+  console.log('4) Mostrando menú contextual desde el proceso principal.');
+  const template = [
+    {
+      label: 'Opción 1',
+      click: () => { console.log('5) Opción detectada'); }
+    },
+    { type: 'separator' },
+    { label: 'Copiar Deck', role: 'copy' },
+    { label: 'Eliminar Deck', role: 'delete' }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  const win = BrowserWindow.fromWebContents(e.sender);
+  setTimeout(() => {
+    menu.popup({ 
+      window: win,
+      x: Math.round(params.x),
+      y: Math.round(params.y)
+    })
+  }, 100)
+})
+
 app.whenReady().then(() => {
   createWindow();
   initTwitchService(); // Llamamos a tu servicio de Twitch al arrancar
@@ -84,5 +112,20 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// PLACEHOLDER: Buscamos conectar a Twitch
+ipcMain.handle('twitch:connect', async () => {
+  try {
+    // Aquí va la lógica de conexión a Twitch
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    console.log("Intentando conectar a Twitch...");
+    return true; // Simulamos éxito
+  } catch (error) {
+    console.error("Error al conectar a Twitch:", error);
+    return false;
   }
 });
