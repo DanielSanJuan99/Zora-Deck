@@ -31,6 +31,11 @@ import './index.css';
 console.log(
   '👋 This message is being logged by "renderer.js", included via Vite',
 );
+
+// Selección del botón de Twitch para futuros usos
+const btnTwitch = document.querySelector('.twitch');
+const txtTwitch = btnTwitch.querySelector('p');
+
 // Renderiza los controles de la ventana personalizada
 globalThis.addEventListener('DOMContentLoaded', () => {
   const btnMinimize = document.getElementById('minimize');
@@ -80,24 +85,44 @@ if (btnExit) {
   btnExit.addEventListener('click', () => globalThis.windowAPI.close());
 }
 
-// Ejemplo de botón que muestra un pequeño menú
+// Ejemplo de botón que muestra un pequeño menú al hacer click derecho
 const btnExample = document.querySelectorAll('.button-container')
-console.log('1) Se encuentran ' + btnExample.length + ' botones de ejemplo.');
-// btnExample.forEach(button => {
-//   button.addEventListener('contextmenu', (e) => {
-//     e.preventDefault();
-//     console.log('2) Se detecta click derecho en botón de ejemplo.');
+btnExample.forEach(button => {
+  button.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    globalThis.windowAPI.showContextMenu(e.x, e.y);
+  });
+});
 
-//     if (window.windowAPI) {
-//       window.windowAPI.showContextMenu();
-//       console.log('3) windowAPI está disponible.');
-//     } else {
-//       console.log('ERROR: windowAPI NO está disponible.');
-//     }
-//     globalThis.windowAPI.showContextMenu();
-//   });
-// });
-window.addEventListener('contextmenu', (e) => {
-    e.preventDefault(); // Bloquea el menú nativo de Chrome/Chromium
-    window.windowAPI.showContextMenu(e.x, e.y);
+// Conexión a Twitch al hacer clic en el botón
+btnTwitch.addEventListener('click', async () => {
+  // 1. Feedback visual inmediato
+  txtTwitch.innerText = 'Conectando...';
+  btnTwitch.style.opacity = '0.7';
+  
+  try {
+    // 2. Llamamos a la API y esperamos respuesta (true/false)
+    const resultado = await globalThis.windowAPI.connectTwitch();
+
+    if (resultado) {
+      // 3. ÉXITO
+      txtTwitch.innerText = '¡Conectado!';
+      btnTwitch.style.backgroundColor = '#2e8b57'; // Verde "SeaGreen"
+      // Aquí podrías guardar en localStorage que ya está logueado
+    } else {
+      throw new Error('Login cancelado o fallido');
+    }
+  } catch (error) {
+    // 4. ERROR
+    console.error(error);
+    txtTwitch.innerText = 'Error al conectar';
+    btnTwitch.style.backgroundColor = '#d9534f'; // Rojo error
+    
+    // Restaurar después de 2 segundos
+    setTimeout(() => {
+        txtTwitch.innerText = 'Conectar a Twitch';
+        btnTwitch.style.backgroundColor = ''; // Vuelve al color CSS original
+        btnTwitch.style.opacity = '1';
+    }, 2000);
+  }
 });

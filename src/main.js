@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'; // Añadido ipcMain
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'; // Añadido ipcMain
 import path from 'node:path';
+import http from 'node:http';
 import started from 'electron-squirrel-startup';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -111,5 +112,20 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// PLACEHOLDER: Buscamos conectar a Twitch
+ipcMain.handle('twitch:connect', async () => {
+  try {
+    // Aquí va la lógica de conexión a Twitch
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    console.log("Intentando conectar a Twitch...");
+    return true; // Simulamos éxito
+  } catch (error) {
+    console.error("Error al conectar a Twitch:", error);
+    return false;
   }
 });

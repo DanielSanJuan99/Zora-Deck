@@ -141,3 +141,11 @@ html, body, #app {
 .button-container:hover{
   background-color: #006485;
 }
+
+.twitch {
+  background-color: #6441a5;
+}
+
+.twitch:hover {
+  background-color: #7b59c5;
+}

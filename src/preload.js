@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('windowAPI', {
   minimize: () => ipcRenderer.send('control:minimize'),
   maximize: () => ipcRenderer.send('control:maximize'),
   close: () => ipcRenderer.send('control:close'),
-  showContextMenu: (x, y) => ipcRenderer.send('context-menu:show', { x, y })
+  showContextMenu: (x, y) => ipcRenderer.send('context-menu:show', { x, y }),
+  connectTwitch: () => ipcRenderer.invoke('twitch:connect')
 });
