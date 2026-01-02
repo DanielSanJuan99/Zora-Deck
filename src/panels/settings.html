@@ -1,10 +1,50 @@
 <div class="settings-popup">
   <div class="settings-header">
-    <span>Settings</span>
-<button class="control-btn close" data-close-panel>✕</button>
+    <span>Ajustes</span>
+    <button class="control-btn close" data-close-panel>✕</button>
   </div>
 
-  <div class="settings-content">
-    <p>Nigger</p>
+  <div class="settings-body">
+    <aside class="settings-sidebar">
+      <div class="sidebar-item">General</div>
+      <div class="sidebar-item active">Conexión</div>
+    </aside>
+
+    <section class="settings-main-content">
+      
+      <div class="config-group">
+        <label class="main-label">Servidor</label>
+        <select id="service-selector" class="settings-input service-select">
+          <option value="obs">OBS</option>
+          <option value="twitch">Twitch</option>
+          <option value="kick">Kick</option>
+        </select>
+      </div>
+
+      <div class="config-box">
+        <h4>Servidor</h4>
+        
+        <div class="config-row">
+          <label for="obs-ip">Dirección IP:</label>
+          <input type="text" id="obs-ip" class="settings-input" value="127.0.0.1" spellcheck="false">
+        </div>
+
+        <div class="config-row">
+          <label for="obs-port">Puerto:</label>
+          <input type="number" id="obs-port" class="settings-input" value="4455">
+        </div>
+
+        <div class="config-row">
+          <label for="obs-password">Contraseña:</label>
+          <input type="password" id="obs-password" class="settings-input" placeholder="••••••••">
+        </div>
+      </div>
+
+      <div class="settings-footer-actions">
+        <span id="obs-status-msg" class="status-label status-disconnected">Desconectado</span>
+        <button id="btn-connect-obs" class="obs-button">Conectar</button>
+      </div>
+
+    </section>
   </div>
 </div>

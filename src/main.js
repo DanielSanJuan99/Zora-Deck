@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron'; // Añadido ipcMain
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import { conectarOBS, estaConectado } from './obs-websocket.js';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -9,7 +10,7 @@ if (started) {
 
 async function initTwitchService() {
   try {
-    // AQUÍ ocurre la magia: Importamos Twurple dinámicamente
+    // AQUÍ ocurre la magia: Importamos Twurple dinámicamente como tenías
     const { RefreshingAuthProvider } = await import('@twurple/auth');
     const { ChatClient } = await import('@twurple/chat');
     const { ApiClient } = await import('@twurple/api');
@@ -48,13 +49,13 @@ const createWindow = () => {
 // --- CONTROL DE VENTANA PERSONALIZADA ---
 // Escuchamos las órdenes que vienen desde el preload.js
 
-ipcMain.on('control:minimize', () => {
-  const win = BrowserWindow.getFocusedWindow();
+ipcMain.on('control:minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
   if (win) win.minimize();
 });
 
-ipcMain.on('control:maximize', () => {
-  const win = BrowserWindow.getFocusedWindow();
+ipcMain.on('control:maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
   if (win) {
     if (win.isMaximized()) {
       win.unmaximize();
@@ -64,9 +65,25 @@ ipcMain.on('control:maximize', () => {
   }
 });
 
-ipcMain.on('control:close', () => {
-  const win = BrowserWindow.getFocusedWindow();
+ipcMain.on('control:close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
   if (win) win.close();
+});
+ipcMain.on('obs:status-request', (event) => {
+  const conectado = estaConectado(); // Llama a la función de tu obs-websocket.js
+  event.reply('obs:connect-response', { success: conectado });
+});
+// --- LÓGICA DE CONEXIÓN OBS ---
+ipcMain.on('obs:connect-request', async (event, config) => {
+  const { ip, port, password } = config;
+  console.log(`Intentando conectar a OBS en ws://${ip}:${port}`);
+  
+  // Ejecutamos la función de conexión y esperamos el resultado
+  const resultado = await conectarOBS(ip, port, password);
+  
+  // ENVIAMOS LA RESPUESTA DE VUELTA AL RENDERER
+  // Esto permitirá que el mensaje en settings.html cambie a "Conectado"
+  event.reply('obs:connect-response', resultado);
 });
 // ----------------------------------------
 
