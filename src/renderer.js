@@ -28,53 +28,105 @@
 
 import './index.css';
 
-console.log(
-  '👋 This message is being logged by "renderer.js", included via Vite',
-);
+/* ============================= */
+/* CONTROLES DE VENTANA ELECTRON */
+/* ============================= */
 window.addEventListener('DOMContentLoaded', () => {
   const btnMinimize = document.getElementById('minimize');
   const btnMaximize = document.getElementById('maximize');
   const btnClose = document.getElementById('close');
 
-  if (btnMinimize) {
-    btnMinimize.onclick = () => window.windowAPI.minimize(); // USAR windowAPI
-  }
-
-  if (btnMaximize) {
-    btnMaximize.onclick = () => window.windowAPI.maximize(); // USAR windowAPI
-  }
-
-  if (btnClose) {
-    btnClose.onclick = () => window.windowAPI.close(); // USAR windowAPI
-  }
+  if (btnMinimize) btnMinimize.onclick = () => window.windowAPI.minimize();
+  if (btnMaximize) btnMaximize.onclick = () => window.windowAPI.maximize();
+  if (btnClose) btnClose.onclick = () => window.windowAPI.close();
 });
 
+/* ============================= */
+/* MENÚ DESPLEGABLE SUPERIOR     */
+/* ============================= */
 const menuContainers = document.querySelectorAll('.menu-item-container');
 
 menuContainers.forEach(container => {
   const btn = container.querySelector('.menu-btn');
-  
+
   btn.addEventListener('click', (e) => {
-    // Si ya estaba abierto, se cierra; si no, se abre y cierra los demás
     const wasActive = container.classList.contains('active');
-    
+
     menuContainers.forEach(c => c.classList.remove('active'));
-    
-    if (!wasActive) {
-      container.classList.add('active');
-    }
-    
-    e.stopPropagation(); // Evita que el clic llegue al documento
+
+    if (!wasActive) container.classList.add('active');
+
+    e.stopPropagation();
   });
 });
 
-// Cerrar menús al hacer clic en cualquier otra parte de la pantalla
 document.addEventListener('click', () => {
   menuContainers.forEach(c => c.classList.remove('active'));
 });
 
-// Hacer que el "Salir" del menú también funcione
-const btnExit = document.getElementById('menu-exit');
-if (btnExit) {
-  btnExit.addEventListener('click', () => window.windowAPI.close());
+/* ============================= */
+/* CARGA DE PANELES (HTML)       */
+/* ============================= */
+
+const mainContent = document.querySelector('.main-content');
+
+/**
+ * Carga un panel HTML dentro del main-content
+ */
+async function loadPanel(path) {
+  try {
+    const response = await fetch(path);
+    const html = await response.text();
+    mainContent.innerHTML = html;
+
+    // Cerrar panel desde su botón interno
+    const closeBtn = mainContent.querySelector('[data-close-panel]');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        mainContent.innerHTML = '';
+      });
+    }
+
+  } catch (err) {
+    console.error('Error cargando panel:', err);
+  }
+}
+
+/* ============================= */
+/* BOTONES DEL MENÚ              */
+/* ============================= */
+
+// Settings
+const btnSettings = document.getElementById('menu-settings');
+if (btnSettings) {
+  btnSettings.addEventListener('click', () => {
+    loadPanel('/src/panels/settings.html');
+    closeMenus();
+  });
+}
+
+// Explore
+const btnExplore = document.getElementById('menu-explore');
+if (btnExplore) {
+  btnExplore.addEventListener('click', () => {
+    loadPanel('/src/panels/explore.html');
+    closeMenus();
+  });
+}
+
+// Addons
+const btnAddons = document.getElementById('menu-addons');
+if (btnAddons) {
+  btnAddons.addEventListener('click', () => {
+    loadPanel('/src/panels/addons.html');
+    closeMenus();
+  });
+}
+
+/* ============================= */
+/* UTILIDAD                      */
+/* ============================= */
+
+function closeMenus() {
+  menuContainers.forEach(c => c.classList.remove('active'));
 }

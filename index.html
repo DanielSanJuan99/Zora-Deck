@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <title>Zora Deck</title>
@@ -7,39 +7,47 @@
   </head>
 
   <body>
+
+    <!-- HEADER / FRAME PERSONALIZADO -->
     <header class="custom-header">
       <div class="drag-region">
         <span class="title">Zora Deck</span>
       </div>
-      
+
       <div class="window-controls">
         <button id="minimize" class="control-btn">─</button>
         <button id="maximize" class="control-btn">▢</button>
         <button id="close" class="control-btn close">✕</button>
       </div>
     </header>
-    
-<nav class="menu-bar">
-  <div class="menu-item-container">
-    <button class="menu-btn">Perfil</button>
-    <div class="menu-dropdown">
-      <button>Ajustes</button>
-    </div>
-  </div>
 
-<div class="menu-item-container">
-    <button class="menu-btn">Workshop</button>
-    <div class="menu-dropdown">
-      <button>Explorar</button>
-      <button>Mis Diseños</button>
-    </div>
-  </div>
-</nav>
+    <!-- MENÚ SUPERIOR -->
+    <nav class="menu-bar">
+
+      <div class="menu-item-container">
+        <button class="menu-btn">Profile</button>
+        <div class="menu-dropdown">
+          <button id="menu-settings">Settings</button>
+        </div>
+      </div>
+
+      <div class="menu-item-container">
+        <button class="menu-btn">Workshop</button>
+        <div class="menu-dropdown">
+          <button id="menu-explore">Explore</button>
+          <button id="menu-addons">Addons</button>
+        </div>
+      </div>
+
+    </nav>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <!-- AQUÍ se cargan los paneles -->
     <main class="main-content">
-      <h1>Hello World!</h1>
-      <p>Welcome to your Electron application.</p>
+      <!-- VACÍO A PROPÓSITO -->
     </main>
 
+    <!-- Renderer -->
     <script type="module" src="/src/renderer.js"></script>
   </body>
 </html>
