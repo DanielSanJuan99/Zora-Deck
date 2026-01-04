@@ -28,101 +28,195 @@
 
 import './index.css';
 
-console.log(
-  '👋 This message is being logged by "renderer.js", included via Vite',
-);
+/* ============================= */
+/* CONTROLES DE VENTANA ELECTRON */
+/* ============================= */
+window.addEventListener('DOMContentLoaded', () => {
+    const btnMinimize = document.getElementById('minimize');
+    const btnMaximize = document.getElementById('maximize');
+    const btnClose = document.getElementById('close');
 
-// Selección del botón de Twitch para futuros usos
-const btnTwitch = document.querySelector('.twitch');
-const txtTwitch = btnTwitch.querySelector('p');
-
-// Renderiza los controles de la ventana personalizada
-globalThis.addEventListener('DOMContentLoaded', () => {
-  const btnMinimize = document.getElementById('minimize');
-  const btnMaximize = document.getElementById('maximize');
-  const btnClose = document.getElementById('close');
-
-  if (btnMinimize) {
-    btnMinimize.onclick = () => globalThis.windowAPI.minimize(); // USAR windowAPI
-  }
-
-  if (btnMaximize) {
-    btnMaximize.onclick = () => globalThis.windowAPI.maximize(); // USAR windowAPI
-  }
-
-  if (btnClose) {
-    btnClose.onclick = () => globalThis.windowAPI.close(); // USAR windowAPI
-  }
+    if (btnMinimize) btnMinimize.onclick = () => window.windowAPI.minimize();
+    if (btnMaximize) btnMaximize.onclick = () => window.windowAPI.maximize();
+    if (btnClose) btnClose.onclick = () => window.windowAPI.close();
 });
 
+/* ============================= */
+/* MENÚ DESPLEGABLE SUPERIOR     */
+/* ============================= */
 const menuContainers = document.querySelectorAll('.menu-item-container');
 
-menuContainers.forEach(container => {
-  const btn = container.querySelector('.menu-btn');
-  
-  btn.addEventListener('click', (e) => {
-    // Si ya estaba abierto, se cierra; si no, se abre y cierra los demás
-    const wasActive = container.classList.contains('active');
-    
+function closeMenus() {
     menuContainers.forEach(c => c.classList.remove('active'));
-    
-    if (!wasActive) {
-      container.classList.add('active');
-    }
-    
-    e.stopPropagation(); // Evita que el clic llegue al documento
-  });
-});
-
-// Cerrar menús al hacer clic en cualquier otra parte de la pantalla
-document.addEventListener('click', () => {
-  menuContainers.forEach(c => c.classList.remove('active'));
-});
-
-// Hacer que el "Salir" del menú también funcione
-const btnExit = document.getElementById('menu-exit');
-if (btnExit) {
-  btnExit.addEventListener('click', () => globalThis.windowAPI.close());
 }
 
-// Ejemplo de botón que muestra un pequeño menú al hacer click derecho
-const btnExample = document.querySelectorAll('.button-container')
-btnExample.forEach(button => {
-  button.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    globalThis.windowAPI.showContextMenu(e.x, e.y);
-  });
+menuContainers.forEach(container => {
+    const btn = container.querySelector('.menu-btn');
+    btn.addEventListener('click', (e) => {
+        const wasActive = container.classList.contains('active');
+        closeMenus();
+        if (!wasActive) container.classList.add('active');
+        e.stopPropagation();
+    });
 });
 
-// Conexión a Twitch al hacer clic en el botón
-btnTwitch.addEventListener('click', async () => {
-  // 1. Feedback visual inmediato
-  txtTwitch.innerText = 'Conectando...';
-  btnTwitch.style.opacity = '0.7';
-  
-  try {
-    // 2. Llamamos a la API y esperamos respuesta (true/false)
-    const resultado = await globalThis.windowAPI.connectTwitch();
+document.addEventListener('click', closeMenus);
 
-    if (resultado) {
-      // 3. ÉXITO
-      txtTwitch.innerText = '¡Conectado!';
-      btnTwitch.style.backgroundColor = '#2e8b57'; // Verde "SeaGreen"
-      // Aquí podrías guardar en localStorage que ya está logueado
-    } else {
-      throw new Error('Login cancelado o fallido');
+/* ============================= */
+/* CARGA DE PANELES (HTML)       */
+/* ============================= */
+const mainContent = document.querySelector('.main-content');
+
+async function loadPanel(path) {
+    try {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+
+        const html = await response.text();
+        mainContent.innerHTML = html;
+
+        const closeBtn = mainContent.querySelector('[data-close-panel]');
+        if (closeBtn) {
+            closeBtn.onclick = () => mainContent.innerHTML = '';
+        }
+
+        if (path.includes('settings.html')) {
+            requestAnimationFrame(() => {
+                initSettingsLogic();
+            });
+        }
+
+    } catch (err) {
+        console.error('Error cargando panel:', err);
     }
-  } catch (error) {
-    // 4. ERROR
-    console.error(error);
-    txtTwitch.innerText = 'Error al conectar';
-    btnTwitch.style.backgroundColor = '#d9534f'; // Rojo error
-    
-    // Restaurar después de 2 segundos
-    setTimeout(() => {
-        txtTwitch.innerText = 'Conectar a Twitch';
-        btnTwitch.style.backgroundColor = ''; // Vuelve al color CSS original
-        btnTwitch.style.opacity = '1';
-    }, 2000);
-  }
+}
+
+/* ============================= */
+/* LÓGICA DEL PANEL SETTINGS     */
+/* ============================= */
+
+function initSettingsLogic() {
+    // --- 1. REFERENCIAS A ELEMENTOS (OBS) ---
+    const btnConnect = document.getElementById('btn-connect-obs');
+    const statusMsg = document.getElementById('obs-status-msg');
+    const inputIp = document.getElementById('obs-ip');
+    const inputPort = document.getElementById('obs-port');
+    const inputPass = document.getElementById('obs-password');
+
+    // --- 2. REFERENCIAS A ELEMENTOS (TWITCH) ---
+    const btnAuthTwitch = document.getElementById('btn-auth-twitch');
+    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    const sections = document.querySelectorAll('.settings-section');
+
+    // --- 3. GESTIÓN DE PESTAÑAS (TABS) ---
+    sidebarItems.forEach(item => {
+        item.onclick = () => {
+            sidebarItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            const target = item.getAttribute('data-tab');
+            sections.forEach(sec => {
+                if (sec.id === `tab-${target}`) {
+                    sec.classList.remove('hidden');
+                    if (target === 'servicios') {
+                        console.log("Pestaña servicios activa.");
+                    }
+                } else {
+                    sec.classList.add('hidden');
+                }
+            });
+        };
+    });
+
+    // --- 4. PERSISTENCIA Y ESTADO INICIAL OBS ---
+    window.windowAPI.checkOBSStatus();
+
+    const savedConfig = JSON.parse(localStorage.getItem('obs-config') || '{}');
+    if (inputIp && savedConfig.ip) inputIp.value = savedConfig.ip;
+    if (inputPort && savedConfig.port) inputPort.value = savedConfig.port;
+    if (inputPass && savedConfig.password) inputPass.value = savedConfig.password;
+
+    // --- 5. LÓGICA DE CONEXIÓN OBS ---
+    if (btnConnect) {
+        btnConnect.onclick = () => {
+            const config = {
+                ip: inputIp.value,
+                port: inputPort.value,
+                password: inputPass.value
+            };
+            if (statusMsg) {
+                statusMsg.innerText = "Intentando...";
+                statusMsg.className = "status-label";
+            }
+            window.windowAPI.connectOBS(config);
+        };
+    }
+
+    window.windowAPI.onOBSResponse((resultado) => {
+        if (!statusMsg) return;
+        if (resultado.success) {
+            statusMsg.innerText = "Conectado";
+            statusMsg.className = "status-label status-connected";
+            const configToSave = { ip: inputIp.value, port: inputPort.value, password: inputPass.value };
+            localStorage.setItem('obs-config', JSON.stringify(configToSave));
+        } else {
+            statusMsg.innerText = "Desconectado";
+            statusMsg.className = "status-label status-disconnected";
+        }
+    });
+
+    // --- 6. LÓGICA DE TWITCH ---
+
+    if (btnAuthTwitch) {
+        btnAuthTwitch.onclick = () => {
+            console.log("Botón Vincular presionado. Abriendo Popup...");
+            btnAuthTwitch.innerText = "Abriendo ventana...";
+            btnAuthTwitch.disabled = true;
+            window.windowAPI.twitchLogin();
+        };
+    }
+
+    // Escuchamos la respuesta del Main (tanto éxito como errores o cierre)
+    window.windowAPI.onTwitchResponse((resultado) => {
+        const btnTwitch = document.getElementById('btn-auth-twitch');
+        if (!btnTwitch) return;
+
+        if (resultado.success) {
+            // ESTADO CONECTADO
+            btnTwitch.innerText = `Conectado: ${resultado.username}`;
+            btnTwitch.style.backgroundColor = "#2e7d32"; 
+            btnTwitch.disabled = true; 
+            console.log("Conexión de Twitch exitosa.");
+        } else {
+            // ESTADO FALLIDO O VENTANA CERRADA
+            // Restablecemos el botón para permitir reintentar
+            btnTwitch.innerText = "Vincular Cuenta";
+            btnTwitch.style.backgroundColor = ""; 
+            btnTwitch.disabled = false;
+            
+            if (resultado.error && resultado.error !== 'Ventana cerrada') {
+                console.error("Error en la autenticación:", resultado.error);
+            } else {
+                console.log("Acción cancelada o ventana cerrada por el usuario.");
+            }
+        }
+    });
+}
+
+/* ============================= */
+/* NAVEGACIÓN DEL MENÚ PRINCIPAL */
+/* ============================= */
+document.getElementById('menu-settings')?.addEventListener('click', () => {
+    loadPanel('/src/panels/settings.html');
+    closeMenus();
+});
+
+document.getElementById('menu-explore')?.addEventListener('click', () => {
+    loadPanel('/src/panels/explore.html');
+    closeMenus();
+});
+
+document.getElementById('menu-addons')?.addEventListener('click', () => {
+    loadPanel('/src/panels/addons.html');
+    closeMenus();
 });

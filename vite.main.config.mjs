@@ -1,16 +1,18 @@
 import { defineConfig } from 'vite';
 
-// https://vitejs.dev/config
 export default defineConfig({
-    build: {
-        rollupOptions: {
-            external: [
-                '@twurple/auth',
-                '@twurple/api',
-                '@twurple/chat',
-                '@twurple/eventsub-ws',
-                'node:fs/promises'
-            ],
-        },
+  build: {
+    rollupOptions: {
+      external: [
+        '@twurple/auth',
+        '@twurple/api',
+        '@twurple/chat',
+        '@twurple/eventsub-ws',
+        'obs-websocket-js',
+        'bufferutil',        // Necesario para evitar el error de la imagen 1
+        'utf-8-validate',    // Dependencia hermana de bufferutil
+        'node:fs/promises'
+      ],
     },
+  },
 });
