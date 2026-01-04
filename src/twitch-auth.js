@@ -11,7 +11,7 @@ let apiClient;
 let chatClient;
 
 /**
- * Inicializa la conexión con Twitch utilizando la sintaxis específica de Twurple v8
+ * Inicializa la conexión con Twitch utilizando la sintaxis de la v8.x
  */
 export async function setupTwitch(clientId, clientSecret, mainWindow) {
   try {
@@ -26,13 +26,15 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       return { success: false, error: 'NEED_AUTH' };
     }
 
-    // 2. Configurar AuthProvider
-    authProvider = new RefreshingAuthProvider({
-      clientId,
-      clientSecret,
-    });
+    // 2. Configurar AuthProvider (Solo si no existe)
+    if (!authProvider) {
+      authProvider = new RefreshingAuthProvider({
+        clientId,
+        clientSecret,
+      });
+    }
 
-    // 3. Registrar el usuario (addUserForToken devuelve el userId en la v8)
+    // 3. Registrar el usuario
     const userId = await authProvider.addUserForToken({
       accessToken: tokenData.access_token || tokenData.accessToken,
       refreshToken: tokenData.refresh_token || tokenData.refreshToken,
@@ -41,30 +43,39 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       scope: tokenData.scope || ['chat:read', 'chat:edit']
     }, ['chat']);
 
-    // 4. Inicializar ApiClient
-    apiClient = new ApiClient({ authProvider });
+    // 4. Inicializar ApiClient (Solo si no existe)
+    if (!apiClient) {
+      apiClient = new ApiClient({ authProvider });
+    }
 
     // 5. OBTENER INFORMACIÓN DEL USUARIO
     let user = null;
     try {
-      // Intentamos el método sugerido: getAuthenticatedUser pasando el userId
       user = await apiClient.users.getAuthenticatedUser(userId);
     } catch (apiErr) {
       console.warn('apiClient.users.getAuthenticatedUser(userId) falló, intentando getUserById...');
       try {
-        // Fallback 1: getUserById (muy estable en v8)
         user = await apiClient.users.getUserById(userId);
       } catch (e2) {
-        console.error('Fallo total en API de usuarios (posible error de bundler/Vite)');
+        console.error('Fallo total en API de usuarios');
       }
     }
 
-    // 6. Configurar e iniciar Chat
+    // 6. CONTROL DE CONEXIÓN DEL CHAT
+    // Si ya hay un chatClient y está conectado, NO conectamos de nuevo
+    if (chatClient && (chatClient.isConnected || chatClient.isConnecting)) {
+      console.log('El Chat ya está activo. Omitiendo reconexión.');
+      return { 
+        success: true, 
+        username: user ? user.displayName : "Conectado" 
+      };
+    }
+
+    // Si había un cliente viejo pero desconectado, lo limpiamos
     if (chatClient) {
       try { await chatClient.quit(); } catch (e) {}
     }
 
-    // Si la API falló en darnos el objeto 'user', usamos el 'userId' como canal de emergencia
     const channelName = user ? user.name : userId;
 
     chatClient = new ChatClient({ 
@@ -72,8 +83,9 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       channels: [channelName] 
     });
 
+    // Evento de mensajes
     chatClient.onMessage((channel, userMsg, message) => {
-      if (mainWindow) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('twitch-chat-message', { user: userMsg, message });
       }
     });
@@ -91,7 +103,6 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
   } catch (error) {
     console.error('Error crítico en setupTwitch:', error.message);
     
-    // Si el error es de autenticación, limpiamos el token para evitar bucles de error
     if (error.message.includes('401') || error.message.includes('token')) {
       await fs.unlink(TOKEN_PATH).catch(() => {});
     }
@@ -101,7 +112,7 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
 }
 
 /**
- * Guarda los tokens y añade el timestamp necesario para el RefreshingAuthProvider
+ * Guarda los tokens y añade el timestamp necesario
  */
 export async function saveInitialTokens(tokenData) {
   const dataToSave = {

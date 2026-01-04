@@ -80,6 +80,7 @@ async function loadPanel(path) {
             closeBtn.onclick = () => mainContent.innerHTML = '';
         }
 
+        // Si cargamos settings, inicializamos su lógica específica
         if (path.includes('settings.html')) {
             requestAnimationFrame(() => {
                 initSettingsLogic();
@@ -118,9 +119,6 @@ function initSettingsLogic() {
             sections.forEach(sec => {
                 if (sec.id === `tab-${target}`) {
                     sec.classList.remove('hidden');
-                    if (target === 'servicios') {
-                        console.log("Pestaña servicios activa.");
-                    }
                 } else {
                     sec.classList.add('hidden');
                 }
@@ -167,37 +165,50 @@ function initSettingsLogic() {
 
     // --- 6. LÓGICA DE TWITCH ---
 
+    // Función auxiliar para cambiar el estilo del botón a "Conectado"
+    const actualizarBotonTwitchConectado = (username) => {
+        const btn = document.getElementById('btn-auth-twitch');
+        if (!btn) return;
+        btn.innerText = `Conectado: ${username}`;
+        btn.style.backgroundColor = "#2e7d32"; 
+        btn.disabled = true;
+    };
+
+    // Verificación inicial de estado (Persistencia)
+    const checkTwitchStatus = async () => {
+        if (!btnAuthTwitch) return;
+        // Consultamos al Main si ya hay una sesión activa
+        const resultado = await window.windowAPI.getTwitchStatus();
+        if (resultado.success) {
+            actualizarBotonTwitchConectado(resultado.username);
+        }
+    };
+
+    // Ejecutamos la comprobación nada más cargar el panel
+    checkTwitchStatus();
+
     if (btnAuthTwitch) {
         btnAuthTwitch.onclick = () => {
-            console.log("Botón Vincular presionado. Abriendo Popup...");
+            console.log("Iniciando vinculación manual...");
             btnAuthTwitch.innerText = "Abriendo ventana...";
             btnAuthTwitch.disabled = true;
             window.windowAPI.twitchLogin();
         };
     }
 
-    // Escuchamos la respuesta del Main (tanto éxito como errores o cierre)
+    // Escucha la respuesta del proceso de login (Main -> Renderer)
     window.windowAPI.onTwitchResponse((resultado) => {
-        const btnTwitch = document.getElementById('btn-auth-twitch');
-        if (!btnTwitch) return;
-
         if (resultado.success) {
-            // ESTADO CONECTADO
-            btnTwitch.innerText = `Conectado: ${resultado.username}`;
-            btnTwitch.style.backgroundColor = "#2e7d32"; 
-            btnTwitch.disabled = true; 
-            console.log("Conexión de Twitch exitosa.");
+            actualizarBotonTwitchConectado(resultado.username);
         } else {
-            // ESTADO FALLIDO O VENTANA CERRADA
-            // Restablecemos el botón para permitir reintentar
-            btnTwitch.innerText = "Vincular Cuenta";
-            btnTwitch.style.backgroundColor = ""; 
-            btnTwitch.disabled = false;
-            
+            // Si el usuario cancela o hay error, restauramos el botón
+            if (btnAuthTwitch) {
+                btnAuthTwitch.innerText = "Vincular Cuenta";
+                btnAuthTwitch.style.backgroundColor = ""; 
+                btnAuthTwitch.disabled = false;
+            }
             if (resultado.error && resultado.error !== 'Ventana cerrada') {
-                console.error("Error en la autenticación:", resultado.error);
-            } else {
-                console.log("Acción cancelada o ventana cerrada por el usuario.");
+                console.error("Error en Twitch Auth:", resultado.error);
             }
         }
     });

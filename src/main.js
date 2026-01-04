@@ -1,15 +1,11 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import path from 'node:path';
-import http from 'node:http';
 import started from 'electron-squirrel-startup';
 import { conectarOBS, estaConectado } from './obs-websocket.js';
-import { setupTwitch, saveInitialTokens } from './twitch-auth.js';
+import { setupTwitch, saveInitialTokens, apiClient } from './twitch-auth.js';
 
-// --- CONFIGURACIÓN DE CREDENCIALES ---
 const CLIENT_ID = 'hhoos5qi41xfs6qq7z9pe2159mobzo'; 
 const CLIENT_SECRET = 'x49z49ojed04ipb9q372t8yg5mh8xv';
-
-// IMPORTANTE: Debe ser exactamente igual a lo configurado en la consola de Twitch
 const REDIRECT_URI = 'http://localhost:3000/callback'; 
 
 if (started) {
@@ -17,6 +13,8 @@ if (started) {
 }
 
 let mainWindow;
+let isTwitchConnected = false; 
+let cachedUsername = "";
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -43,18 +41,30 @@ const createWindow = () => {
 /* LÓGICA DE AUTENTICACIÓN TWITCH            */
 /* ========================================= */
 
-ipcMain.on('twitch:auth-request', async (event) => {
-  let isResponded = false;
+ipcMain.handle('twitch:get-status', async () => {
+  if (isTwitchConnected) {
+    return { success: true, username: cachedUsername || "Conectado" };
+  }
 
-  // 1. Intento silencioso (Carga automática si el archivo ya existe)
-  const autoResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow);
-  if (autoResult.success) {
-    isResponded = true;
-    event.reply('twitch:auth-response', autoResult);
+  try {
+    const result = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow);
+    if (result.success) {
+      isTwitchConnected = true;
+      cachedUsername = result.username;
+    }
+    return result;
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.on('twitch:auth-request', async (event) => {
+  if (isTwitchConnected) {
+    event.reply('twitch:auth-response', { success: true, username: cachedUsername });
     return;
   }
 
-  // 2. Abrir Popup de Login
+  let isResponded = false;
   const authWindow = new BrowserWindow({
     width: 500,
     height: 700,
@@ -71,22 +81,16 @@ ipcMain.on('twitch:auth-request', async (event) => {
   authWindow.loadURL(authUrl);
   authWindow.once('ready-to-show', () => authWindow.show());
 
-  // FUNCIÓN MAESTRA DE CAPTURA
   const handleNavigation = async (url) => {
-    console.log("Detectada navegación a:", url);
-
     if (url.includes(REDIRECT_URI)) {
       const urlObj = new URL(url);
       const code = urlObj.searchParams.get('code');
 
       if (code && !isResponded) {
         isResponded = true;
-        
-        // Cerramos la ventana de inmediato
         authWindow.destroy(); 
         
         try {
-          console.log("Intercambiando código por tokens...");
           const response = await fetch('https://id.twitch.tv/oauth2/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -102,40 +106,31 @@ ipcMain.on('twitch:auth-request', async (event) => {
           const tokenData = await response.json();
           
           if (tokenData.access_token) {
-            console.log("Token recibido. Guardando en archivo...");
             await saveInitialTokens(tokenData);
             
-            // Esperamos un instante para que el archivo se asiente
             setTimeout(async () => {
               const finalResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow);
+              if (finalResult.success) {
+                isTwitchConnected = true;
+                cachedUsername = finalResult.username;
+              }
               event.reply('twitch:auth-response', finalResult);
             }, 500);
             
           } else {
-            console.error("Respuesta de Twitch sin access_token:", tokenData);
-            event.reply('twitch:auth-response', { success: false, error: 'Error en respuesta de Twitch' });
+            event.reply('twitch:auth-response', { success: false });
           }
-
         } catch (err) {
-          console.error("Error en canje de tokens:", err);
-          event.reply('twitch:auth-response', { success: false, error: 'Error de red en validación' });
+          event.reply('twitch:auth-response', { success: false });
         }
       }
     }
   };
 
-  // Eventos de captura para no perder la redirección de localhost
   authWindow.webContents.on('will-navigate', (e, url) => handleNavigation(url));
   authWindow.webContents.on('will-redirect', (e, url) => handleNavigation(url));
-  authWindow.webContents.on('did-start-navigation', (e, url) => handleNavigation(url));
-  authWindow.webContents.on('did-fail-load', (e, errorCode, errorDescription, validatedURL) => {
-    handleNavigation(validatedURL);
-  });
-
   authWindow.on('closed', () => {
-    if (!isResponded) {
-      event.reply('twitch:auth-response', { success: false, error: 'Ventana cerrada' });
-    }
+    if (!isResponded) event.reply('twitch:auth-response', { success: false });
   });
 });
 
@@ -167,32 +162,37 @@ ipcMain.on('obs:connect-request', async (event, config) => {
   event.reply('obs:connect-response', resultado);
 });
 
-// despliegue del menú contextual
 ipcMain.on('context-menu:show', (e, params) => {
-  console.log('4) Mostrando menú contextual desde el proceso principal.');
   const template = [
-    {
-      label: 'Opción 1',
-      click: () => { console.log('5) Opción detectada'); }
-    },
+    { label: 'Opción 1', click: () => {} },
     { type: 'separator' },
     { label: 'Copiar Deck', role: 'copy' },
     { label: 'Eliminar Deck', role: 'delete' }
   ];
-
   const menu = Menu.buildFromTemplate(template);
   const win = BrowserWindow.fromWebContents(e.sender);
   setTimeout(() => {
-    menu.popup({ 
-      window: win,
-      x: Math.round(params.x),
-      y: Math.round(params.y)
-    })
+    menu.popup({ window: win, x: Math.round(params.x), y: Math.round(params.y) })
   }, 100)
-})
+});
 
-app.whenReady().then(() => {
+/* ========================================= */
+/* ARRANQUE DE LA APLICACIÓN                 */
+/* ========================================= */
+
+app.whenReady().then(async () => {
   createWindow();
+
+  try {
+    const initResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, null);
+    if (initResult.success) {
+      isTwitchConnected = true;
+      cachedUsername = initResult.username;
+    }
+  } catch (e) {
+    // Error silencioso
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
