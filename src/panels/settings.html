@@ -6,43 +6,77 @@
 
   <div class="settings-body">
     <aside class="settings-sidebar">
-      <div class="sidebar-item">General</div>
-      <div class="sidebar-item active">Conexión</div>
+      <div class="sidebar-item" data-tab="general">General</div>
+      <div class="sidebar-item active" data-tab="conexion">Conexión</div>
+      <div class="sidebar-item" data-tab="servicios">Servicios</div>
     </aside>
 
     <section class="settings-main-content">
       
-      <div class="config-group">
-        <label class="main-label">Servidor</label>
-        <select id="service-selector" class="settings-input service-select">
-          <option value="obs">OBS</option>
-          <option value="twitch">Twitch</option>
-          <option value="kick">Kick</option>
-        </select>
-      </div>
-
-      <div class="config-box">
-        <h4>Servidor</h4>
-        
-        <div class="config-row">
-          <label for="obs-ip">Dirección IP:</label>
-          <input type="text" id="obs-ip" class="settings-input" value="127.0.0.1" spellcheck="false">
+      <div id="tab-general" class="settings-section hidden">
+        <div class="config-group">
+          <label class="main-label-extended">Ajustes Generales</label>
         </div>
-
-        <div class="config-row">
-          <label for="obs-port">Puerto:</label>
-          <input type="number" id="obs-port" class="settings-input" value="4455">
-        </div>
-
-        <div class="config-row">
-          <label for="obs-password">Contraseña:</label>
-          <input type="password" id="obs-password" class="settings-input" placeholder="••••••••">
+        <div class="config-box">
+          <p style="text-align: center; color: #888; font-size: 13px; margin: 20px 0;">
+            Configuraciones de la aplicación y preferencias de interfaz.
+          </p>
         </div>
       </div>
 
-      <div class="settings-footer-actions">
-        <span id="obs-status-msg" class="status-label status-disconnected">Desconectado</span>
-        <button id="btn-connect-obs" class="obs-button">Conectar</button>
+      <div id="tab-conexion" class="settings-section">
+        <div class="config-group">
+          <label class="main-label-extended">Conexión con OBS Websocket</label>
+        </div>
+
+        <div class="config-box">
+          <h4>Configuración de Red</h4>
+          
+          <div class="config-row">
+            <label for="obs-ip">Dirección IP:</label>
+            <input type="text" id="obs-ip" class="settings-input" value="127.0.0.1" spellcheck="false">
+          </div>
+
+          <div class="config-row">
+            <label for="obs-port">Puerto:</label>
+            <input type="number" id="obs-port" class="settings-input" value="4455">
+          </div>
+
+          <div class="config-row">
+            <label for="obs-password">Contraseña:</label>
+            <input type="password" id="obs-password" class="settings-input" placeholder="••••••••">
+          </div>
+        </div>
+
+        <div class="settings-footer-actions">
+          <span id="obs-status-msg" class="status-label status-disconnected">Desconectado</span>
+          <button id="btn-connect-obs" class="obs-button">Conectar</button>
+        </div>
+      </div>
+
+      <div id="tab-servicios" class="settings-section hidden">
+        <div class="config-group">
+          <label class="main-label-extended">Servicios de Streaming</label>
+        </div>
+
+        <div class="config-box">
+          <h4>Integración de Twitch</h4>
+          
+          <div class="config-row" style="justify-content: space-between; align-items: center; padding: 5px 0;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="color: #a970ff; font-weight: bold; font-size: 14px;">Twitch TV</span>
+              <span style="color: #888; font-size: 11px;">Vincular cuenta para chat y eventos en vivo.</span>
+            </div>
+            <button id="btn-auth-twitch" class="obs-button">Vincular Cuenta</button>
+          </div>
+        </div>
+
+        <div class="config-box" style="opacity: 0.6; margin-top: 20px;">
+          <h4>Integración de Kick</h4>
+          <p style="text-align: center; color: #666; font-size: 12px; margin: 10px 0;">
+            Soporte para Kick próximamente.
+          </p>
+        </div>
       </div>
 
     </section>

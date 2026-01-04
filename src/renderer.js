@@ -32,13 +32,13 @@ import './index.css';
 /* CONTROLES DE VENTANA ELECTRON */
 /* ============================= */
 window.addEventListener('DOMContentLoaded', () => {
-  const btnMinimize = document.getElementById('minimize');
-  const btnMaximize = document.getElementById('maximize');
-  const btnClose = document.getElementById('close');
+    const btnMinimize = document.getElementById('minimize');
+    const btnMaximize = document.getElementById('maximize');
+    const btnClose = document.getElementById('close');
 
-  if (btnMinimize) btnMinimize.onclick = () => window.windowAPI.minimize();
-  if (btnMaximize) btnMaximize.onclick = () => window.windowAPI.maximize();
-  if (btnClose) btnClose.onclick = () => window.windowAPI.close();
+    if (btnMinimize) btnMinimize.onclick = () => window.windowAPI.minimize();
+    if (btnMaximize) btnMaximize.onclick = () => window.windowAPI.maximize();
+    if (btnClose) btnClose.onclick = () => window.windowAPI.close();
 });
 
 /* ============================= */
@@ -47,17 +47,17 @@ window.addEventListener('DOMContentLoaded', () => {
 const menuContainers = document.querySelectorAll('.menu-item-container');
 
 function closeMenus() {
-  menuContainers.forEach(c => c.classList.remove('active'));
+    menuContainers.forEach(c => c.classList.remove('active'));
 }
 
 menuContainers.forEach(container => {
-  const btn = container.querySelector('.menu-btn');
-  btn.addEventListener('click', (e) => {
-    const wasActive = container.classList.contains('active');
-    closeMenus();
-    if (!wasActive) container.classList.add('active');
-    e.stopPropagation();
-  });
+    const btn = container.querySelector('.menu-btn');
+    btn.addEventListener('click', (e) => {
+        const wasActive = container.classList.contains('active');
+        closeMenus();
+        if (!wasActive) container.classList.add('active');
+        e.stopPropagation();
+    });
 });
 
 document.addEventListener('click', closeMenus);
@@ -68,25 +68,27 @@ document.addEventListener('click', closeMenus);
 const mainContent = document.querySelector('.main-content');
 
 async function loadPanel(path) {
-  try {
-    const response = await fetch(path);
-    if (!response.ok) throw new Error(`Error: ${response.statusText}`);
-    
-    const html = await response.text();
-    mainContent.innerHTML = html;
+    try {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
 
-    const closeBtn = mainContent.querySelector('[data-close-panel]');
-    if (closeBtn) {
-      closeBtn.onclick = () => mainContent.innerHTML = '';
+        const html = await response.text();
+        mainContent.innerHTML = html;
+
+        const closeBtn = mainContent.querySelector('[data-close-panel]');
+        if (closeBtn) {
+            closeBtn.onclick = () => mainContent.innerHTML = '';
+        }
+
+        if (path.includes('settings.html')) {
+            requestAnimationFrame(() => {
+                initSettingsLogic();
+            });
+        }
+
+    } catch (err) {
+        console.error('Error cargando panel:', err);
     }
-
-    if (path.includes('settings.html')) {
-      initSettingsLogic();
-    }
-
-  } catch (err) {
-    console.error('Error cargando panel:', err);
-  }
 }
 
 /* ============================= */
@@ -94,98 +96,127 @@ async function loadPanel(path) {
 /* ============================= */
 
 function initSettingsLogic() {
-  const btnConnect = document.getElementById('btn-connect-obs');
-  const statusMsg = document.getElementById('obs-status-msg');
-  const serviceSelector = document.getElementById('service-selector');
-  
-  // Referencias a los inputs
-  const inputIp = document.getElementById('obs-ip');
-  const inputPort = document.getElementById('obs-port');
-  const inputPass = document.getElementById('obs-password');
-  window.windowAPI.checkOBSStatus(); 
-  // --- 1. CARGAR DATOS GUARDADOS (Persistencia) ---
-  const savedConfig = JSON.parse(localStorage.getItem('obs-config') || '{}');
-  if (inputIp && savedConfig.ip) inputIp.value = savedConfig.ip;
-  if (inputPort && savedConfig.port) inputPort.value = savedConfig.port;
-  if (inputPass && savedConfig.password) inputPass.value = savedConfig.password;
+    // --- 1. REFERENCIAS A ELEMENTOS (OBS) ---
+    const btnConnect = document.getElementById('btn-connect-obs');
+    const statusMsg = document.getElementById('obs-status-msg');
+    const inputIp = document.getElementById('obs-ip');
+    const inputPort = document.getElementById('obs-port');
+    const inputPass = document.getElementById('obs-password');
 
-  // --- 2. MANEJO DEL SELECTOR DE SERVICIO ---
-  if (serviceSelector) {
-    serviceSelector.onchange = (e) => {
-      const selected = e.target.value;
-      console.log("Servicio seleccionado:", selected);
-      // Aquí puedes ocultar o mostrar el config-box según el servicio
-    };
-  }
+    // --- 2. REFERENCIAS A ELEMENTOS (TWITCH) ---
+    const btnAuthTwitch = document.getElementById('btn-auth-twitch');
+    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    const sections = document.querySelectorAll('.settings-section');
 
-  // --- 3. ACCIÓN DE CONECTAR ---
-  if (btnConnect) {
-    btnConnect.onclick = () => {
-      const config = {
-        ip: inputIp.value,
-        port: inputPort.value,
-        password: inputPass.value
-      };
+    // --- 3. GESTIÓN DE PESTAÑAS (TABS) ---
+    sidebarItems.forEach(item => {
+        item.onclick = () => {
+            sidebarItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
 
-      if (statusMsg) {
-        statusMsg.innerText = "Intentando...";
-        statusMsg.className = "status-label"; // Reset de clase
-        statusMsg.style.color = "#aaa"; // Color neutro mientras conecta
-      }
-      
-      window.windowAPI.connectOBS(config);
-    };
-  }
+            const target = item.getAttribute('data-tab');
+            sections.forEach(sec => {
+                if (sec.id === `tab-${target}`) {
+                    sec.classList.remove('hidden');
+                    if (target === 'servicios') {
+                        console.log("Pestaña servicios activa.");
+                    }
+                } else {
+                    sec.classList.add('hidden');
+                }
+            });
+        };
+    });
 
-  // --- 4. RESPUESTA DESDE EL PROCESO MAIN ---
-  window.windowAPI.onOBSResponse((resultado) => {
-    if (!statusMsg) return;
+    // --- 4. PERSISTENCIA Y ESTADO INICIAL OBS ---
+    window.windowAPI.checkOBSStatus();
 
-    if (resultado.success) {
-      statusMsg.innerText = "Conectado";
-      statusMsg.className = "status-label status-connected";
-      statusMsg.style.color = ""; // Limpia style inline para usar CSS
-      
-      // Guardar configuración exitosa
-      const configToSave = {
-        ip: inputIp.value,
-        port: inputPort.value,
-        password: inputPass.value
-      };
-      localStorage.setItem('obs-config', JSON.stringify(configToSave));
+    const savedConfig = JSON.parse(localStorage.getItem('obs-config') || '{}');
+    if (inputIp && savedConfig.ip) inputIp.value = savedConfig.ip;
+    if (inputPort && savedConfig.port) inputPort.value = savedConfig.port;
+    if (inputPass && savedConfig.password) inputPass.value = savedConfig.password;
 
-    } else {
-      statusMsg.innerText = "Desconectado";
-      statusMsg.className = "status-label status-disconnected";
-      statusMsg.style.color = ""; // Usa el rojo #e81123 del CSS
-      console.error("Error de conexión:", resultado.error);
+    // --- 5. LÓGICA DE CONEXIÓN OBS ---
+    if (btnConnect) {
+        btnConnect.onclick = () => {
+            const config = {
+                ip: inputIp.value,
+                port: inputPort.value,
+                password: inputPass.value
+            };
+            if (statusMsg) {
+                statusMsg.innerText = "Intentando...";
+                statusMsg.className = "status-label";
+            }
+            window.windowAPI.connectOBS(config);
+        };
     }
-  });
 
-  // --- 5. NAVEGACIÓN SIDEBAR ---
-  const sidebarItems = document.querySelectorAll('.sidebar-item');
-  sidebarItems.forEach(item => {
-    item.onclick = () => {
-      sidebarItems.forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-    };
-  });
+    window.windowAPI.onOBSResponse((resultado) => {
+        if (!statusMsg) return;
+        if (resultado.success) {
+            statusMsg.innerText = "Conectado";
+            statusMsg.className = "status-label status-connected";
+            const configToSave = { ip: inputIp.value, port: inputPort.value, password: inputPass.value };
+            localStorage.setItem('obs-config', JSON.stringify(configToSave));
+        } else {
+            statusMsg.innerText = "Desconectado";
+            statusMsg.className = "status-label status-disconnected";
+        }
+    });
+
+    // --- 6. LÓGICA DE TWITCH ---
+
+    if (btnAuthTwitch) {
+        btnAuthTwitch.onclick = () => {
+            console.log("Botón Vincular presionado. Abriendo Popup...");
+            btnAuthTwitch.innerText = "Abriendo ventana...";
+            btnAuthTwitch.disabled = true;
+            window.windowAPI.twitchLogin();
+        };
+    }
+
+    // Escuchamos la respuesta del Main (tanto éxito como errores o cierre)
+    window.windowAPI.onTwitchResponse((resultado) => {
+        const btnTwitch = document.getElementById('btn-auth-twitch');
+        if (!btnTwitch) return;
+
+        if (resultado.success) {
+            // ESTADO CONECTADO
+            btnTwitch.innerText = `Conectado: ${resultado.username}`;
+            btnTwitch.style.backgroundColor = "#2e7d32"; 
+            btnTwitch.disabled = true; 
+            console.log("Conexión de Twitch exitosa.");
+        } else {
+            // ESTADO FALLIDO O VENTANA CERRADA
+            // Restablecemos el botón para permitir reintentar
+            btnTwitch.innerText = "Vincular Cuenta";
+            btnTwitch.style.backgroundColor = ""; 
+            btnTwitch.disabled = false;
+            
+            if (resultado.error && resultado.error !== 'Ventana cerrada') {
+                console.error("Error en la autenticación:", resultado.error);
+            } else {
+                console.log("Acción cancelada o ventana cerrada por el usuario.");
+            }
+        }
+    });
 }
 
 /* ============================= */
 /* NAVEGACIÓN DEL MENÚ PRINCIPAL */
 /* ============================= */
 document.getElementById('menu-settings')?.addEventListener('click', () => {
-  loadPanel('/src/panels/settings.html');
-  closeMenus();
+    loadPanel('/src/panels/settings.html');
+    closeMenus();
 });
 
 document.getElementById('menu-explore')?.addEventListener('click', () => {
-  loadPanel('/src/panels/explore.html');
-  closeMenus();
+    loadPanel('/src/panels/explore.html');
+    closeMenus();
 });
 
 document.getElementById('menu-addons')?.addEventListener('click', () => {
-  loadPanel('/src/panels/addons.html');
-  closeMenus();
+    loadPanel('/src/panels/addons.html');
+    closeMenus();
 });

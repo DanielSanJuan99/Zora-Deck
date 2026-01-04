@@ -329,3 +329,37 @@ select:focus::-ms-value {
 .hidden {
   display: none;
 }
+.config-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 30px; 
+  padding-top: 10px;
+}
+
+
+.config-box {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 30px 25px 20px 25px; 
+  border-radius: 6px;
+  margin-top: 10px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; 
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px; 
+}
+
+.settings-main-content {
+  flex: 1;
+  padding: 30px; 
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
