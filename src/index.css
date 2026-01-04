@@ -1,3 +1,18 @@
+/* ================= CONFIGURACIÓN GLOBAL ================= */
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #272a33;
+  color: white;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+/* ================= HEADER PERSONALIZADO ================= */
+
 .custom-header {
   background-color: #006485;
   color: white;
@@ -5,7 +20,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  user-select: none; /* Evita que se seleccione el texto */
+  user-select: none;
 }
 
 .drag-region {
@@ -14,13 +29,13 @@
   display: flex;
   align-items: center;
   padding-left: 15px;
-  -webkit-app-region: drag; 
+  -webkit-app-region: drag;
 }
 
 .window-controls {
   display: flex;
   height: 100%;
-  -webkit-app-region: no-drag; 
+  -webkit-app-region: no-drag;
 }
 
 .control-btn {
@@ -38,37 +53,32 @@
 }
 
 .control-btn.close:hover {
-  background: #e81123; 
+  background: #e81123;
 }
-html, body, #app {
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #272a33;
-  color: white; 
-  overflow: hidden;
-  font-family: sans-serif;
-}
+
+/* ================= CONTENIDO PRINCIPAL ================= */
+
 .main-content {
   background-color: #272a33;
-  height: calc(100vh - 35px); 
+  height: calc(100vh - 35px);
   padding: 20px;
 }
 
+/* ================= MENÚ SUPERIOR ================= */
+
 .menu-bar {
   display: flex;
-  background-color: #30384b; /* Un tono gris muy oscuro */
+  background-color: #30384b;
   padding: 0 5px;
   border-bottom: 1px solid #333;
-  -webkit-app-region: no-drag; /* Para que se pueda hacer clic */
+  -webkit-app-region: no-drag;
 }
+
 .menu-item-container {
   position: relative;
   display: inline-block;
 }
 
-/* El botón parece solo texto */
 .menu-btn {
   background: none;
   border: none;
@@ -80,14 +90,14 @@ html, body, #app {
   transition: background 0.2s, color 0.2s;
 }
 
-.menu-btn:hover, .menu-item-container.active .menu-btn {
+.menu-btn:hover,
+.menu-item-container.active .menu-btn {
   background-color: #30384b;
   color: white;
 }
 
-/* El menú desplegable */
 .menu-dropdown {
-  display: none; /* Oculto por defecto */
+  display: none;
   position: absolute;
   top: 100%;
   left: 0;
@@ -96,9 +106,10 @@ html, body, #app {
   border: 1px solid #444;
   box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
   z-index: 999;
+  border-radius: 6px; 
+  overflow: hidden;
 }
 
-/* Clase para mostrar el menú cuando se hace clic */
 .menu-item-container.active .menu-dropdown {
   display: block;
 }
@@ -116,36 +127,239 @@ html, body, #app {
 }
 
 .menu-dropdown button:hover {
-  background-color: #007acc; /* Azul de selección tipo Windows/OBS */
+  background-color: #007acc;
 }
 
-.menu-dropdown{
-  border: 0;
-  border-top: 1px solid #444;
-  margin: 4px 0;
+/* ================= SETTINGS POPUP ================= */
+
+.settings-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 650px;
+  height: 450px;
+  background-color: #2f3442;
+  color: white;
+  border-radius: 6px; 
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Clase y estilo para botones en div */
-.button-container {
-  text-align: center;
-  margin-top: 20px;
-  background-color: #333;
-  padding: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,1);
-  border-radius: 5px;
-  cursor: pointer;
+.settings-header {
+  height: 35px;
+  background-color: #006485;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
   user-select: none;
-  transition: background-color 0.2s;
 }
 
-.button-container:hover{
+.settings-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.settings-sidebar {
+  width: 150px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 10px;
+}
+
+.sidebar-item {
+  padding: 12px 20px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #bbb;
+}
+
+.sidebar-item.active {
+  background-color: #006485;
+  color: white;
+}
+
+.settings-main-content {
+  flex: 1;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* --- SOLUCIÓN SERVIDOR A LA IZQUIERDA --- */
+.config-group {
+  display: flex;
+  flex-direction: row; 
+  align-items: center;
+  gap: 15px;
+}
+
+.main-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  width: 100px; /* Ancho fijo para alineación */
+  flex-shrink: 0;
+}
+
+/* --- SOLUCIÓN DEFINITIVA BORDES BLANCOS --- */
+.settings-input, .service-select {
+  background-color: #1a1c23;
+  border: 1px solid #444;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px; 
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+  
+  /* Reset total de estilos de sistema */
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  border-style: solid;
+}
+
+/* Asegurar que el foco no dibuje nada fuera del borde azul */
+.settings-input:focus, .service-select:focus {
+  outline: 0 !important;
+  outline-offset: 0 !important;
+  border-color: #006485 !important;
+  box-shadow: none !important;
+}
+
+.service-select {
+  height: 32px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 35px;
+}
+
+/* Quitar resaltado azul/blanco al hacer click en Windows */
+select:focus::-ms-value {
+    background: transparent;
+    color: white;
+}
+
+.service-select option {
+  background-color: #252525;
+  color: white;
+}
+
+/* Caja de servidor inferior */
+.config-box {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 20px 15px 10px 15px;
+  border-radius: 6px;
+  margin-top: 5px;
+  position: relative;
+}
+
+.config-box h4 {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  margin: 0;
+  background: #2f3442;
+  padding: 0 5px;
+  font-size: 11px;
+  color: #888;
+  font-weight: normal;
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.config-row label {
+  width: 110px;
+  font-size: 13px;
+  color: #ccc;
+}
+
+/* Footer y Botones */
+.settings-footer-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-label {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.status-disconnected {
+  color: #e81123;
+}
+
+.status-connected {
+  color: #4cd137;
+}
+
+.obs-button {
+  background-color: #3e4452;
+  color: white;
+  border: 1px solid #555;
+  padding: 7px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.obs-button:hover {
   background-color: #006485;
 }
 
-.twitch {
-  background-color: #6441a5;
+.hidden {
+  display: none;
+}
+.config-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 30px; 
+  padding-top: 10px;
 }
 
-.twitch:hover {
-  background-color: #7b59c5;
+
+.config-box {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 30px 25px 20px 25px; 
+  border-radius: 6px;
+  margin-top: 10px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; 
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px; 
+}
+
+.settings-main-content {
+  flex: 1;
+  padding: 30px; 
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
 }
