@@ -39,6 +39,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (btnMinimize) btnMinimize.onclick = () => window.windowAPI.minimize();
     if (btnMaximize) btnMaximize.onclick = () => window.windowAPI.maximize();
     if (btnClose) btnClose.onclick = () => window.windowAPI.close();
+
+    initDeckHubLogic();
 });
 
 /* ============================= */
@@ -63,89 +65,164 @@ menuContainers.forEach(container => {
 document.addEventListener('click', closeMenus);
 
 /* ============================= */
-/* CARGA DE PANELES (HTML)       */
+/* CARGA DE PANELES (OVERLAY)    */
 /* ============================= */
-const mainContent = document.querySelector('.main-content');
-
 async function loadPanel(path) {
     try {
+        // Si ya hay un panel abierto, lo cerramos antes de abrir otro
+        const existingPanel = document.getElementById('panel-overlay');
+        if (existingPanel) existingPanel.remove();
+
         const response = await fetch(path);
         if (!response.ok) throw new Error(`Error: ${response.statusText}`);
 
         const html = await response.text();
-        mainContent.innerHTML = html;
 
-        const closeBtn = mainContent.querySelector('[data-close-panel]');
+        // Creamos el contenedor Overlay para que flote sobre el deck
+        const panelOverlay = document.createElement('div');
+        panelOverlay.id = 'panel-overlay';
+        panelOverlay.innerHTML = html;
+        document.body.appendChild(panelOverlay);
+
+        // Lógica para cerrar el panel sin recargar el fondo
+        const closeBtn = panelOverlay.querySelector('[data-close-panel]');
         if (closeBtn) {
-            closeBtn.onclick = () => mainContent.innerHTML = '';
+            closeBtn.onclick = () => {
+                panelOverlay.remove();
+            };
         }
 
-        // Si cargamos settings, inicializamos su lógica específica
         if (path.includes('settings.html')) {
-            requestAnimationFrame(() => {
-                initSettingsLogic();
-            });
+            requestAnimationFrame(() => initSettingsLogic());
         }
-
     } catch (err) {
         console.error('Error cargando panel:', err);
     }
 }
 
 /* ============================= */
+/* LÓGICA DEL HUB DE DECKS       */
+/* ============================= */
+const mainContent = document.querySelector('.main-content');
+const initialHubHTML = mainContent.innerHTML;
+
+function initDeckHubLogic() {
+    const deckItems = document.querySelectorAll('.deck-item');
+    deckItems.forEach(item => {
+        item.onclick = () => {
+            const deckId = item.getAttribute('data-deck');
+            const deckName = item.querySelector('h3').innerText;
+            renderDeckTemplate(deckId, deckName);
+        };
+    });
+}
+
+/**
+ * Genera la interfaz de edición del Deck (Grid System)
+ */
+function renderDeckTemplate(id, name) {
+    const template = `
+        <div class="deck-editor">
+            <div class="deck-header">
+                <div class="header-info">
+                    <button class="back-btn" id="btn-back-hub">⬅ Volver</button>
+                    <div>
+                        <h2 style="margin:0;">${name}</h2>
+                        <small style="color:#888;">Click derecho para crear botones en el Grid</small>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="save-btn" id="btn-save-grid">Guardar Cambios</button>
+                </div>
+            </div>
+
+            <div class="grid-container" id="main-grid">
+                ${Array.from({ length: 50 }, (_, i) => `
+                    <div class="grid-slot" data-slot="${i}"></div>
+                `).join('')}
+            </div>
+
+            <div id="grid-context-menu" class="context-menu hidden">
+                <button id="menu-action-create">Crear Botón</button>
+                <button class="disabled">Pegar Botón</button>
+                <hr>
+                <button class="disabled">Importar JSON</button>
+            </div>
+        </div>
+    `;
+
+    mainContent.innerHTML = template;
+
+    const grid = document.getElementById('main-grid');
+    const contextMenu = document.getElementById('grid-context-menu');
+    let selectedSlot = null;
+
+    grid.oncontextmenu = (e) => {
+        e.preventDefault();
+        const slot = e.target.closest('.grid-slot');
+        if (!slot) return;
+        selectedSlot = slot;
+        contextMenu.style.top = `${e.pageY}px`;
+        contextMenu.style.left = `${e.pageX}px`;
+        contextMenu.classList.remove('hidden');
+    };
+
+    document.addEventListener('click', () => contextMenu.classList.add('hidden'));
+
+    document.getElementById('menu-action-create').onclick = () => {
+        if (!selectedSlot || selectedSlot.hasChildNodes()) return;
+        const newButton = document.createElement('div');
+        newButton.className = 'grid-button';
+        newButton.innerHTML = `
+            <div class="button-content">
+                <span class="button-text">Nuevo Botón</span>
+                <small class="button-type">MACRO</small>
+            </div>
+        `;
+        newButton.onclick = (e) => { e.stopPropagation(); };
+        selectedSlot.appendChild(newButton);
+    };
+
+    document.getElementById('btn-back-hub').onclick = () => {
+        mainContent.innerHTML = initialHubHTML;
+        initDeckHubLogic();
+    };
+}
+
+/* ============================= */
 /* LÓGICA DEL PANEL SETTINGS     */
 /* ============================= */
-
 function initSettingsLogic() {
-    // --- 1. REFERENCIAS A ELEMENTOS (OBS) ---
     const btnConnect = document.getElementById('btn-connect-obs');
     const statusMsg = document.getElementById('obs-status-msg');
     const inputIp = document.getElementById('obs-ip');
     const inputPort = document.getElementById('obs-port');
     const inputPass = document.getElementById('obs-password');
-
-    // --- 2. REFERENCIAS A ELEMENTOS (TWITCH) ---
     const btnAuthTwitch = document.getElementById('btn-auth-twitch');
     const sidebarItems = document.querySelectorAll('.sidebar-item');
     const sections = document.querySelectorAll('.settings-section');
 
-    // --- 3. GESTIÓN DE PESTAÑAS (TABS) ---
     sidebarItems.forEach(item => {
         item.onclick = () => {
             sidebarItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-
             const target = item.getAttribute('data-tab');
             sections.forEach(sec => {
-                if (sec.id === `tab-${target}`) {
-                    sec.classList.remove('hidden');
-                } else {
-                    sec.classList.add('hidden');
-                }
+                sec.id === `tab-${target}` ? sec.classList.remove('hidden') : sec.classList.add('hidden');
             });
         };
     });
 
-    // --- 4. PERSISTENCIA Y ESTADO INICIAL OBS ---
     window.windowAPI.checkOBSStatus();
-
     const savedConfig = JSON.parse(localStorage.getItem('obs-config') || '{}');
     if (inputIp && savedConfig.ip) inputIp.value = savedConfig.ip;
     if (inputPort && savedConfig.port) inputPort.value = savedConfig.port;
     if (inputPass && savedConfig.password) inputPass.value = savedConfig.password;
 
-    // --- 5. LÓGICA DE CONEXIÓN OBS ---
     if (btnConnect) {
         btnConnect.onclick = () => {
-            const config = {
-                ip: inputIp.value,
-                port: inputPort.value,
-                password: inputPass.value
-            };
-            if (statusMsg) {
-                statusMsg.innerText = "Intentando...";
-                statusMsg.className = "status-label";
-            }
+            const config = { ip: inputIp.value, port: inputPort.value, password: inputPass.value };
+            if (statusMsg) { statusMsg.innerText = "Intentando..."; statusMsg.className = "status-label"; }
             window.windowAPI.connectOBS(config);
         };
     }
@@ -155,17 +232,13 @@ function initSettingsLogic() {
         if (resultado.success) {
             statusMsg.innerText = "Conectado";
             statusMsg.className = "status-label status-connected";
-            const configToSave = { ip: inputIp.value, port: inputPort.value, password: inputPass.value };
-            localStorage.setItem('obs-config', JSON.stringify(configToSave));
+            localStorage.setItem('obs-config', JSON.stringify({ ip: inputIp.value, port: inputPort.value, password: inputPass.value }));
         } else {
             statusMsg.innerText = "Desconectado";
             statusMsg.className = "status-label status-disconnected";
         }
     });
 
-    // --- 6. LÓGICA DE TWITCH ---
-
-    // Función auxiliar para cambiar el estilo del botón a "Conectado"
     const actualizarBotonTwitchConectado = (username) => {
         const btn = document.getElementById('btn-auth-twitch');
         if (!btn) return;
@@ -174,42 +247,29 @@ function initSettingsLogic() {
         btn.disabled = true;
     };
 
-    // Verificación inicial de estado (Persistencia)
     const checkTwitchStatus = async () => {
         if (!btnAuthTwitch) return;
-        // Consultamos al Main si ya hay una sesión activa
         const resultado = await window.windowAPI.getTwitchStatus();
-        if (resultado.success) {
-            actualizarBotonTwitchConectado(resultado.username);
-        }
+        if (resultado.success) actualizarBotonTwitchConectado(resultado.username);
     };
 
-    // Ejecutamos la comprobación nada más cargar el panel
     checkTwitchStatus();
 
     if (btnAuthTwitch) {
         btnAuthTwitch.onclick = () => {
-            console.log("Iniciando vinculación manual...");
             btnAuthTwitch.innerText = "Abriendo ventana...";
             btnAuthTwitch.disabled = true;
             window.windowAPI.twitchLogin();
         };
     }
 
-    // Escucha la respuesta del proceso de login (Main -> Renderer)
     window.windowAPI.onTwitchResponse((resultado) => {
         if (resultado.success) {
             actualizarBotonTwitchConectado(resultado.username);
-        } else {
-            // Si el usuario cancela o hay error, restauramos el botón
-            if (btnAuthTwitch) {
-                btnAuthTwitch.innerText = "Vincular Cuenta";
-                btnAuthTwitch.style.backgroundColor = ""; 
-                btnAuthTwitch.disabled = false;
-            }
-            if (resultado.error && resultado.error !== 'Ventana cerrada') {
-                console.error("Error en Twitch Auth:", resultado.error);
-            }
+        } else if (btnAuthTwitch) {
+            btnAuthTwitch.innerText = "Vincular Cuenta";
+            btnAuthTwitch.style.backgroundColor = ""; 
+            btnAuthTwitch.disabled = false;
         }
     });
 }
@@ -224,10 +284,8 @@ document.getElementById('menu-settings')?.addEventListener('click', () => {
 
 document.getElementById('menu-explore')?.addEventListener('click', () => {
     loadPanel('/src/panels/explore.html');
-    closeMenus();
 });
 
 document.getElementById('menu-addons')?.addEventListener('click', () => {
     loadPanel('/src/panels/addons.html');
-    closeMenus();
 });
