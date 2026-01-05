@@ -64,7 +64,7 @@ html, body, #app {
   height: calc(100vh - 68px); 
   padding: 20px;
   box-sizing: border-box;
-  overflow: hidden; /* Evita scrolls dobles en el editor */
+  overflow: hidden; 
 }
 
 /* ================= MENÚ SUPERIOR ================= */
@@ -170,10 +170,29 @@ html, body, #app {
   margin-bottom: 10px;
 }
 
-.deck-content h3 {
-  margin: 0;
-  font-size: 1.5rem;
+/* El nombre aquí sigue siendo editable como pediste */
+.hub-name-input {
+  background: transparent;
+  border: none;
   color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 5px 0;
+  width: 100%;
+  outline: none;
+  cursor: text;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.hub-name-input:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hub-name-input:focus {
+  border-bottom-color: #006485;
+  background: rgba(0, 100, 133, 0.1);
 }
 
 .deck-content p {
@@ -191,13 +210,15 @@ html, body, #app {
   letter-spacing: 1px;
 }
 
-/* ================= EDITOR DE DECK (GRID INTERACTIVO) ================= */
+/* ================= EDITOR DE DECK (SISTEMA DE COORDENADAS) ================= */
 
 .deck-editor {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100%; /* Asegúrate que el contenedor padre tenga altura */
   animation: fadeIn 0.2s ease-in-out;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .deck-header {
@@ -209,84 +230,155 @@ html, body, #app {
   margin-bottom: 15px;
 }
 
-.header-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+.deck-title-static {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: white;
 }
 
 .back-btn {
   background: #3e4452;
   border: none;
   color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 8px 16px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
-}
-
-.grid-container {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr); /* 10 columnas como base */
-  grid-gap: 2px;
-  background-color: #1a1c23; /* Líneas de la grilla */
-  padding: 2px;
-  border: 1px solid #3e424b;
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
-.grid-slot {
-  background-color: #272a33;
-  aspect-ratio: 1 / 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
   transition: background 0.2s;
 }
 
-.grid-slot:hover {
-  background-color: #2d313b;
+/* CONTENEDOR PRINCIPAL DEL GRID */
+.grid-container {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr); /* 10 Columnas */
+  /* IMPORTANTE: Definimos el tamaño de las celdas para que no colapsen */
+  grid-auto-rows: calc((100vw - 250px) / 10); 
+  background-color: #1a1c23;
+  border: 2px solid #3e424b;
+  border-radius: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 500px; /* Altura mínima para que sea visible */
 }
 
-/* Botón activo creado por código */
+/* Capa de fondo (Celdas visuales) */
+.grid-background-layer {
+  display: contents; /* Permite que los hijos usen el grid del padre */
+}
+
+.grid-slot {
+  background-color: #22262e;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
+}
+
+/* CAPA DE BOTONES: Donde ocurre el arrastre */
+.buttons-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-auto-rows: calc((100vw - 250px) / 10);
+  pointer-events: none; /* Deja pasar clics al fondo si no hay botón */
+}
+
+/* EL BOTÓN (SAMMI STYLE) */
 .grid-button {
-  width: 90%;
-  height: 90%;
-  background: linear-gradient(145deg, #30384b, #272a33);
-  border: 1px solid #006485;
-  border-radius: 4px;
+  position: relative;
+  pointer-events: auto; /* Reactivamos clics para el botón */
+  background: linear-gradient(145deg, #005a78, #004259);
+  border: 1px solid #0082ad;
+  border-radius: 2px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-  transition: transform 0.1s, border-color 0.2s;
+  cursor: grab;
+  z-index: 10;
+  user-select: none;
+  margin: 1px; /* Separación mínima visual */
 }
 
-.grid-button:hover {
+.grid-button:active {
+  cursor: grabbing;
+}
+
+/* Mientras se arrastra */
+.grid-button.dragging {
+  opacity: 0.8;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   border-color: #4cd137;
-  transform: scale(1.03);
+  transform: scale(1.02); /* Efecto de que "se levanta" */
 }
 
-.button-content {
-  text-align: center;
+/* MANEJADOR DE TAMAÑO */
+.resize-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.3) 50%);
+  z-index: 20;
+}
+
+.resize-handle:hover {
+  background: linear-gradient(135deg, transparent 50%, #4cd137 50%);
 }
 
 .button-text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
-  display: block;
+  color: white;
+  text-align: center;
+  pointer-events: none;
+  padding: 5px;
 }
 
 .button-type {
   font-size: 9px;
-  color: #006485;
-  font-weight: bold;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
-/* ================= MENÚ CONTEXTUAL ================= */
+/* Context Menu coherente */
+.context-menu {
+  position: fixed;
+  background: #2a2f3a;
+  border: 1px solid #444;
+  box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+  z-index: 1000;
+  border-radius: 4px;
+  padding: 5px 0;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 20px;
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: #006485;
+}
+
+.context-menu button.danger:hover {
+  background: #e81123;
+}
+/* ================= MENÚ CONTEXTUAL Y BUSCADOR ================= */
 
 .context-menu {
   position: fixed;
@@ -295,8 +387,29 @@ html, body, #app {
   border-radius: 4px;
   padding: 5px 0;
   z-index: 10000;
-  min-width: 150px;
+  min-width: 180px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+}
+
+.search-box-container {
+  padding: 5px 10px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 5px;
+}
+
+.menu-search-input {
+  width: 100%;
+  background-color: #000;
+  border: 1px solid #444;
+  color: #4cd137;
+  padding: 5px;
+  font-size: 12px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.menu-search-input::placeholder {
+  color: #666;
 }
 
 .context-menu button {
@@ -315,6 +428,16 @@ html, body, #app {
   background: #006485;
 }
 
+/* CAMBIO AQUÍ: Estilo para acciones de eliminar */
+.context-menu button.danger {
+  color: #ff5e5e;
+}
+
+.context-menu button.danger:hover {
+  background: #e81123 !important;
+  color: white;
+}
+
 .context-menu button.disabled {
   color: #555;
   cursor: default;
@@ -325,14 +448,132 @@ html, body, #app {
   border-top: 1px solid #444;
   margin: 5px 0;
 }
+/* ================= EDITOR DE COMANDOS (COHERENCIA VISUAL) ================= */
 
-/* ================= SETTINGS PANEL ================= */
+.command-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #272a33; /* Mismo fondo que el resto de la app */
+  animation: fadeIn 0.1s ease-out;
+}
+
+.editor-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #30384b; /* Color de barras de menú/título */
+  border-bottom: 1px solid #1a1c23;
+}
+
+.editor-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Input del nombre del botón (si se usa aquí) */
+.editor-title input {
+  background: transparent;
+  color: white;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 4px 8px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.editor-title input:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.editor-title input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #006485;
+}
+
+/* Área principal donde va la lista de comandos */
+.command-main-area {
+  flex-grow: 1;
+  padding: 15px;
+  background-color: #1a1c23; /* Fondo oscuro intermedio */
+  overflow-y: auto;
+}
+
+/* El contenedor específico de la lista/textarea */
+.command-list {
+  border: 1px solid #3e424b;
+  min-height: 100%;
+  background-color: #22262e; /* Azul grisáceo oscuro, coherente con el tema */
+  border-radius: 6px;
+  padding: 10px;
+  box-sizing: border-box;
+  color: #ddd;
+}
+
+/* Si usas un textarea dentro, asegúrate que herede el estilo */
+.command-list textarea {
+    background: transparent;
+    border: none;
+    resize: none;
+    width: 100%;
+    height: 100%;
+    color: inherit;
+    outline: none;
+    font-family: 'Consolas', 'Courier New', monospace; /* Fuente tipo código */
+}
+
+.editor-footer-tools {
+  background-color: #30384b; /* Mismo color que la barra superior */
+  padding: 10px 15px;
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid #1a1c23;
+}
+
+.footer-btn {
+  background-color: #3e4452;
+  border: 1px solid #555;
+  color: #ddd;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.footer-btn:hover {
+  background-color: #4e5565;
+  color: white;
+}
+
+.footer-btn.danger:hover {
+    background-color: #e81123;
+    border-color: #e81123;
+}
+/* ================= SISTEMA DE OVERLAY (PANELES) ================= */
+
+#panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
 
 .settings-popup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
   width: 650px;
   height: 450px;
   background-color: #2f3442;
@@ -340,7 +581,6 @@ html, body, #app {
   border-radius: 6px; 
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-  z-index: 2000;
   display: flex;
   flex-direction: column;
 }
