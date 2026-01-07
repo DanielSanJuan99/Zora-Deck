@@ -27,7 +27,7 @@
  */
 
 import './index.css';
-
+import { authenticateKick } from './kick-auth.js';
 // Estado global para manejar el Deck actual
 let currentDeckData = {
     id: null,
@@ -97,35 +97,82 @@ async function loadPanel(path) {
     }
 }
 
-/* ============================= */
-/* LÓGICA DEL HUB DE DECKS       */
-/* ============================= */
+/* ======================================= */
+/* LÓGICA DEL HUB DE DECKS (ACTUALIZADA)   */
+/* ======================================= */
+
 const mainContent = document.querySelector('.main-content');
-const initialHubHTML = mainContent.innerHTML;
+let currentViewIndex = 0; 
 
 function initDeckHubLogic() {
-    mainContent.innerHTML = initialHubHTML;
+    // 1. Obtener y ordenar decks
+    const allKeys = Object.keys(localStorage)
+        .filter(k => k.startsWith('deck_storage_'))
+        .sort(); 
+
+    const totalViews = Math.max(1, Math.ceil(allKeys.length / 4));
+
+    // 2. Ajustes de seguridad (Evitar páginas vacías)
+    if (currentViewIndex >= totalViews) currentViewIndex = totalViews - 1;
+    if (currentViewIndex < 0) currentViewIndex = 0;
+
+    // 3. Selección de decks para la vista actual (4 por página)
+    const start = currentViewIndex * 4;
+    const keysInView = allKeys.slice(start, start + 4);
+
+    // 4. Renderizar HTML
+    mainContent.innerHTML = `
+        <div class="hub-container">
+            <div class="deck-grid">
+                ${keysInView.map(key => {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    const id = key.replace('deck_storage_', '');
+                    return `
+                        <div class="deck-item" data-deck="${id}">
+                            <div class="deck-icon">🖼️</div>
+                            <div class="deck-content">
+                                <input type="text" class="hub-name-input" value="${data.name || 'Sin nombre'}" spellcheck="false">
+                                <p>Configurar comandos y macros</p>
+                            </div>
+                            <div class="deck-footer">HABILITADO</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <footer class="hub-footer">
+                <div class="view-navigator">
+                    <button class="nav-btn" id="prev-view" ${currentViewIndex === 0 ? 'disabled' : ''}> < </button>
+                    
+                    <button class="v-btn del" id="del-view-btn" title="Eliminar último Deck">-</button>
+                    
+                    <div class="view-info">
+                        VISTA ${currentViewIndex + 1} / ${totalViews}
+                    </div>
+                    
+                    <button class="v-btn add" id="add-view-btn" title="Añadir Nuevo Deck">+</button>
+                    
+                    <button class="nav-btn" id="next-view" ${currentViewIndex >= totalViews - 1 ? 'disabled' : ''}> > </button>
+                </div>
+            </footer>
+        </div>
+    `;
+
+    setupHubListeners();
+}
+
+function setupHubListeners() {
     const deckItems = document.querySelectorAll('.deck-item');
-    
     deckItems.forEach(item => {
         const id = item.getAttribute('data-deck');
-        const saved = JSON.parse(localStorage.getItem(`deck_storage_${id}`) || '{}');
-        
-        // Reemplazar el H3 por un Input invisible en el Hub
-        const titleH3 = item.querySelector('h3');
-        const currentName = saved.name || titleH3.innerText;
-        
-        titleH3.outerHTML = `<input type="text" class="hub-name-input" value="${currentName}" spellcheck="false">`;
         const input = item.querySelector('.hub-name-input');
 
-        // Click en el item para abrirlo
         item.onclick = (e) => {
             if (e.target !== input) {
                 openDeck(id, input.value);
             }
         };
 
-        // Guardar nombre al editarlo en el Hub
         input.onchange = (e) => {
             let data = JSON.parse(localStorage.getItem(`deck_storage_${id}`) || '{"buttons":{}}');
             data.id = id;
@@ -135,19 +182,62 @@ function initDeckHubLogic() {
 
         input.onclick = (e) => e.stopPropagation();
     });
+
+    // --- Lógica del Navigator (Footer) ---
+    
+    document.getElementById('prev-view').onclick = () => {
+        currentViewIndex--;
+        initDeckHubLogic();
+    };
+
+    document.getElementById('next-view').onclick = () => {
+        currentViewIndex++;
+        initDeckHubLogic();
+    };
+
+    // Botón + (Crear y saltar a la página nueva si es necesario)
+    document.getElementById('add-view-btn').onclick = () => {
+        const newId = Date.now();
+        const newDeck = { id: newId, name: "Nuevo Deck", buttons: {} };
+        localStorage.setItem(`deck_storage_${newId}`, JSON.stringify(newDeck));
+        
+        // Recalcular para saltar a la página donde se creó el deck
+        const allKeys = Object.keys(localStorage).filter(k => k.startsWith('deck_storage_')).sort();
+        const targetView = Math.ceil(allKeys.length / 4) - 1;
+        
+        currentViewIndex = targetView;
+        initDeckHubLogic();
+    };
+
+    // Botón - (Eliminar y retroceder página si queda vacía)
+    document.getElementById('del-view-btn').onclick = () => {
+        const allKeys = Object.keys(localStorage).filter(k => k.startsWith('deck_storage_')).sort();
+        if (allKeys.length > 0 && confirm("¿Eliminar el último deck creado?")) {
+            localStorage.removeItem(allKeys[allKeys.length - 1]);
+            
+            // Recalcular si la página actual se quedó sin decks
+            const newTotalKeys = allKeys.length - 1;
+            const newTotalViews = Math.max(1, Math.ceil(newTotalKeys / 4));
+            
+            if (currentViewIndex >= newTotalViews) {
+                currentViewIndex = newTotalViews - 1;
+            }
+            
+            initDeckHubLogic();
+        }
+    };
 }
 
 function openDeck(id, defaultName) {
     const savedData = localStorage.getItem(`deck_storage_${id}`);
     if (savedData) {
         currentDeckData = JSON.parse(savedData);
-        currentDeckData.id = id; // Asegurar integridad del ID
+        currentDeckData.id = id; 
     } else {
         currentDeckData = { id, name: defaultName, buttons: {} };
     }
     renderDeckTemplate();
 }
-
 /* ======================================= */
 /* EDITOR DE GRID INTERACTIVO (SAMMI STYLE) */
 /* ======================================= */
@@ -368,7 +458,6 @@ function renderCommandEditor(slotId) {
     };
     document.getElementById('btn-cancel-cmd').onclick = () => renderDeckTemplate();
 }
-
 /* ============================= */
 /* LÓGICA DE SETTINGS            */
 /* ============================= */
@@ -378,6 +467,13 @@ function initSettingsLogic() {
     const sidebarItems = document.querySelectorAll('.sidebar-item');
     const sections = document.querySelectorAll('.settings-section');
 
+    // Botones de Servicios
+    const btnAuthTwitch = document.getElementById('btn-auth-twitch');
+    const twitchStatus = document.getElementById('twitch-status-msg');
+    const btnAuthKick = document.getElementById('btn-auth-kick');
+    const kickStatus = document.getElementById('kick-status-msg'); // Asumiendo que tienes este ID en el HTML
+
+    // 1. Navegación de pestañas interna
     sidebarItems.forEach(item => {
         item.onclick = () => {
             sidebarItems.forEach(i => i.classList.remove('active'));
@@ -389,8 +485,15 @@ function initSettingsLogic() {
         };
     });
 
+    // 2. --- ESTADO INICIAL (Verificar conexiones al cargar el panel) ---
     window.windowAPI.checkOBSStatus();
     
+    // Verificar si Twitch ya está conectado
+    window.windowAPI.getTwitchStatus().then(res => {
+        updateTwitchUI(res);
+    });
+
+    // 3. --- LÓGICA OBS ---
     if (btnConnect) {
         btnConnect.onclick = () => {
             const config = { 
@@ -414,8 +517,59 @@ function initSettingsLogic() {
             }));
         }
     });
-}
 
+    // 4. --- LÓGICA TWITCH ---
+    if (btnAuthTwitch) {
+        btnAuthTwitch.onclick = () => {
+            btnAuthTwitch.innerText = "Conectando...";
+            window.windowAPI.sendTwitchAuth(); 
+        };
+    }
+
+    window.windowAPI.onTwitchResponse((res) => {
+        updateTwitchUI(res);
+    });
+
+    function updateTwitchUI(res) {
+        if (!btnAuthTwitch) return;
+        if (res.success) {
+            btnAuthTwitch.innerText = "Cuenta Vinculada";
+            btnAuthTwitch.classList.add('connected'); // Opcional para CSS
+            if (twitchStatus) {
+                twitchStatus.innerText = `Conectado como: ${res.username}`;
+                twitchStatus.className = "status-label status-connected";
+            }
+        } else {
+            btnAuthTwitch.innerText = "Vincular Cuenta";
+            if (twitchStatus) {
+                twitchStatus.innerText = "Desconectado";
+                twitchStatus.className = "status-label status-disconnected";
+            }
+        }
+    }
+
+    // 5. --- LÓGICA KICK ---
+    if (btnAuthKick) {
+        btnAuthKick.onclick = () => {
+            btnAuthKick.innerText = "Abriendo Kick...";
+            authenticateKick(); 
+        };
+    }
+
+    // Escuchamos el éxito de Kick desde el Main
+    window.windowAPI.onKickSuccess((data) => {
+        if (btnAuthKick) {
+            btnAuthKick.innerText = "Kick Vinculado";
+            btnAuthKick.style.backgroundColor = "#53fc18"; // Color verde neón de Kick
+            btnAuthKick.style.color = "#000";
+        }
+        if (kickStatus) {
+            kickStatus.innerText = "Sesión Iniciada";
+            kickStatus.className = "status-label status-connected";
+        }
+        console.log("Código de Kick recibido:", data.code);
+    });
+}
 /* ============================= */
 /* NAVEGACIÓN GENERAL            */
 /* ============================= */

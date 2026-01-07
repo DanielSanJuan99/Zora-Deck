@@ -16,17 +16,23 @@ contextBridge.exposeInMainWorld('windowAPI', {
   },
 
   // --- Lógica de Twitch ---
-  twitchLogin: () => ipcRenderer.send('twitch:auth-request'),
-  
-  // NUEVO: Permite consultar el estado actual (si ya hay tokens guardados)
+  sendTwitchAuth: () => ipcRenderer.send('twitch:auth-request'), // Ajustado para coincidir con tu settings
   getTwitchStatus: () => ipcRenderer.invoke('twitch:get-status'),
-
   onTwitchResponse: (callback) => {
     ipcRenderer.removeAllListeners('twitch:auth-response');
     ipcRenderer.on('twitch:auth-response', (event, arg) => callback(arg));
   },
-
   onTwitchChatMessage: (callback) => {
     ipcRenderer.on('twitch:chat-message', (event, arg) => callback(arg));
+  },
+
+  // --- Lógica de KICK (AÑADIDO) ---
+  // Este es el que dispara la ventana nativa que evita el error -105
+  sendKickAuth: () => ipcRenderer.send('kick:auth-request'),
+  
+  // Este escucha cuando el Main termina de crear el archivo token.json
+  onKickSuccess: (callback) => {
+    ipcRenderer.removeAllListeners('kick:auth-success');
+    ipcRenderer.on('kick:auth-success', (event, arg) => callback(arg));
   }
 });
