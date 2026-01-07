@@ -1,0 +1,4 @@
+[
+    { "socketEvent": "chat_message", "triggerName": "ChatMessage" },
+    { "socketEvent": "subscription", "triggerName": "NewSub" }
+]

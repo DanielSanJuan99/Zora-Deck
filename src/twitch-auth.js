@@ -10,14 +10,10 @@ let authProvider;
 let apiClient;
 let chatClient;
 
-/**
- * Inicializa la conexión con Twitch utilizando la sintaxis de la v8.x
- */
 export async function setupTwitch(clientId, clientSecret, mainWindow) {
   try {
     let tokenData;
     
-    // 1. Cargar archivo de tokens
     try {
       const data = await fs.readFile(TOKEN_PATH, 'utf-8');
       tokenData = JSON.parse(data);
@@ -26,7 +22,6 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       return { success: false, error: 'NEED_AUTH' };
     }
 
-    // 2. Configurar AuthProvider (Solo si no existe)
     if (!authProvider) {
       authProvider = new RefreshingAuthProvider({
         clientId,
@@ -34,7 +29,6 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       });
     }
 
-    // 3. Registrar el usuario
     const userId = await authProvider.addUserForToken({
       accessToken: tokenData.access_token || tokenData.accessToken,
       refreshToken: tokenData.refresh_token || tokenData.refreshToken,
@@ -43,17 +37,14 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       scope: tokenData.scope || ['chat:read', 'chat:edit']
     }, ['chat']);
 
-    // 4. Inicializar ApiClient (Solo si no existe)
     if (!apiClient) {
       apiClient = new ApiClient({ authProvider });
     }
 
-    // 5. OBTENER INFORMACIÓN DEL USUARIO
     let user = null;
     try {
       user = await apiClient.users.getAuthenticatedUser(userId);
     } catch (apiErr) {
-      console.warn('apiClient.users.getAuthenticatedUser(userId) falló, intentando getUserById...');
       try {
         user = await apiClient.users.getUserById(userId);
       } catch (e2) {
@@ -61,17 +52,10 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       }
     }
 
-    // 6. CONTROL DE CONEXIÓN DEL CHAT
-    // Si ya hay un chatClient y está conectado, NO conectamos de nuevo
     if (chatClient && (chatClient.isConnected || chatClient.isConnecting)) {
-      console.log('El Chat ya está activo. Omitiendo reconexión.');
-      return { 
-        success: true, 
-        username: user ? user.displayName : "Conectado" 
-      };
+      return { success: true, username: user ? user.displayName : "Conectado" };
     }
 
-    // Si había un cliente viejo pero desconectado, lo limpiamos
     if (chatClient) {
       try { await chatClient.quit(); } catch (e) {}
     }
@@ -83,45 +67,55 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       channels: [channelName] 
     });
 
-    // Evento de mensajes
-    chatClient.onMessage((channel, userMsg, message) => {
+    // Evento de mensajes para que el Main los reciba
+    chatClient.onMessage((channel, userMsg, message, msg) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('twitch-chat-message', { user: userMsg, message });
       }
+      
+      // AQUÍ SE DISPARARÁ LA AUTOMATIZACIÓN EN EL FUTURO
+      // Puedes importar triggerAutomation aquí o manejarlo desde el main
     });
 
     await chatClient.connect();
-    
-    const displayUsername = user ? user.displayName : "Conectado";
     console.log(`¡SISTEMA LISTO! Canal conectado: ${channelName}`);
     
-    return { 
-      success: true, 
-      username: displayUsername 
-    };
+    return { success: true, username: user ? user.displayName : "Conectado" };
 
   } catch (error) {
     console.error('Error crítico en setupTwitch:', error.message);
-    
     if (error.message.includes('401') || error.message.includes('token')) {
       await fs.unlink(TOKEN_PATH).catch(() => {});
     }
-    
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Guarda los tokens y añade el timestamp necesario
+ * NUEVA: Función para enviar mensajes al chat
+ * @param {string} message - El texto a enviar
  */
+export async function sendTwitchMessage(message) {
+    try {
+        if (!chatClient || !chatClient.isConnected) {
+            throw new Error("El chat de Twitch no está conectado.");
+        }
+        // Obtenemos los canales a los que estamos unidos
+        const channels = chatClient.currentChannels;
+        if (channels.length > 0) {
+            await chatClient.say(channels[0], message);
+            console.log(`✉️ Mensaje enviado a Twitch: ${message}`);
+            return { success: true };
+        }
+    } catch (error) {
+        console.error("❌ Error enviando mensaje a Twitch:", error);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function saveInitialTokens(tokenData) {
-  const dataToSave = {
-    ...tokenData,
-    obtainmentTimestamp: Date.now()
-  };
-  
+  const dataToSave = { ...tokenData, obtainmentTimestamp: Date.now() };
   await fs.writeFile(TOKEN_PATH, JSON.stringify(dataToSave, null, 4), 'utf-8');
-  console.log('Archivo twitch-tokens.json actualizado correctamente.');
 }
 
 export { chatClient, apiClient };

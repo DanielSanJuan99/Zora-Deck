@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('windowAPI', {
+  // --- Controles de Ventana ---
   minimize: () => ipcRenderer.send('control:minimize'),
   maximize: () => ipcRenderer.send('control:maximize'),
   close: () => ipcRenderer.send('control:close'),
@@ -26,16 +27,31 @@ contextBridge.exposeInMainWorld('windowAPI', {
 
   // --- Lógica de KICK ---
   sendKickAuth: () => ipcRenderer.send('kick:auth-request'),
-  
-  // Intercambia el código temporal por el token definitivo
   getKickToken: (data) => ipcRenderer.invoke('kick:get-token', data),
-
-  // NUEVO: Verifica si el archivo kick-token.json existe para mantener el botón "Vinculado"
   checkKickStatus: () => ipcRenderer.invoke('kick:check-status'),
-
   onKickSuccess: (callback) => {
-    // Escucha el código de autorización proveniente del servidor local
     ipcRenderer.removeAllListeners('kick:auth-success');
     ipcRenderer.on('kick:auth-success', (event, arg) => callback(arg));
-  }
+  },
+
+  /* ========================================= */
+  /* NUEVO: LÓGICA DE AUTOMATIZACIÓN Y GRID    */
+  /* ========================================= */
+
+  // Sincroniza todos los botones con el Main (usado al Guardar)
+  updateButtonsLogic: (buttons) => ipcRenderer.send('update-buttons-logic', buttons),
+
+  // Ejecuta la prueba manual (Botón "PROBAR")
+  testCommands: (commands) => ipcRenderer.send('test-commands-execution', commands),
+
+  // Escucha cuando el Main solicita los botones (al arrancar la app)
+  onRequestSync: (callback) => {
+    // Es importante usar removeAllListeners antes de registrar uno nuevo
+    // para evitar que la función se ejecute varias veces si el renderer se recarga
+    ipcRenderer.removeAllListeners('request-buttons-sync');
+    ipcRenderer.on('request-buttons-sync', () => callback());
+  },
+
+  // --- NUEVO: Obtener eventos para el panel de ayuda del editor ---
+  getAvailableEvents: () => ipcRenderer.invoke('get-available-events')
 });

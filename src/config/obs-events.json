@@ -1,0 +1,6 @@
+[
+    { "socketEvent": "CurrentProgramSceneChanged", "triggerName": "SceneChanged" },
+    { "socketEvent": "StreamStateChanged", "triggerName": "StreamState" },
+    { "socketEvent": "InputMuteStateChanged", "triggerName": "MuteChanged" },
+    { "socketEvent": "InputNameChanged", "triggerName": "InputNameChanged" }
+]

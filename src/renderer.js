@@ -47,9 +47,18 @@ window.addEventListener('DOMContentLoaded', () => {
     if (btnMaximize) btnMaximize.onclick = () => window.windowAPI.maximize();
     if (btnClose) btnClose.onclick = () => window.windowAPI.close();
 
+    // Bloque de sincronización corregido
+    if (window.windowAPI && window.windowAPI.onRequestSync) {
+        window.windowAPI.onRequestSync(() => {
+            console.log("📥 Main solicitó sincronización. Enviando botones actuales...");
+            // Si hay un deck cargado, lo enviamos. Si no, enviamos objeto vacío.
+            const buttonsToSync = currentDeckData?.buttons || {};
+            window.windowAPI.updateButtonsLogic(buttonsToSync);
+        }); // <-- Aquí faltaba cerrar esta llave y el paréntesis
+    }
+
     initDeckHubLogic();
 });
-
 /* ============================= */
 /* MENÚ DESPLEGABLE SUPERIOR     */
 /* ============================= */
@@ -183,8 +192,6 @@ function setupHubListeners() {
         input.onclick = (e) => e.stopPropagation();
     });
 
-    // --- Lógica del Navigator (Footer) ---
-    
     document.getElementById('prev-view').onclick = () => {
         currentViewIndex--;
         initDeckHubLogic();
@@ -195,13 +202,11 @@ function setupHubListeners() {
         initDeckHubLogic();
     };
 
-    // Botón + (Crear y saltar a la página nueva si es necesario)
     document.getElementById('add-view-btn').onclick = () => {
         const newId = Date.now();
         const newDeck = { id: newId, name: "Nuevo Deck", buttons: {} };
         localStorage.setItem(`deck_storage_${newId}`, JSON.stringify(newDeck));
         
-        // Recalcular para saltar a la página donde se creó el deck
         const allKeys = Object.keys(localStorage).filter(k => k.startsWith('deck_storage_')).sort();
         const targetView = Math.ceil(allKeys.length / 4) - 1;
         
@@ -209,20 +214,13 @@ function setupHubListeners() {
         initDeckHubLogic();
     };
 
-    // Botón - (Eliminar y retroceder página si queda vacía)
     document.getElementById('del-view-btn').onclick = () => {
         const allKeys = Object.keys(localStorage).filter(k => k.startsWith('deck_storage_')).sort();
         if (allKeys.length > 0 && confirm("¿Eliminar el último deck creado?")) {
             localStorage.removeItem(allKeys[allKeys.length - 1]);
-            
-            // Recalcular si la página actual se quedó sin decks
             const newTotalKeys = allKeys.length - 1;
             const newTotalViews = Math.max(1, Math.ceil(newTotalKeys / 4));
-            
-            if (currentViewIndex >= newTotalViews) {
-                currentViewIndex = newTotalViews - 1;
-            }
-            
+            if (currentViewIndex >= newTotalViews) currentViewIndex = newTotalViews - 1;
             initDeckHubLogic();
         }
     };
@@ -238,6 +236,7 @@ function openDeck(id, defaultName) {
     }
     renderDeckTemplate();
 }
+
 /* ======================================= */
 /* EDITOR DE GRID INTERACTIVO (SAMMI STYLE) */
 /* ======================================= */
@@ -249,13 +248,13 @@ function renderDeckTemplate() {
         <div class="deck-editor">
             <div class="deck-header">
                 <div class="header-info">
-                    <button class="back-btn" id="btn-back-hub">⬅ Volver</button>
                     <div class="deck-title-container">
                         <h2 class="deck-title-static">${name}</h2>
                         <small style="color:#666; display:block;">Click Izquierdo: Arrastrar/Redimensionar | Click Derecho: Crear/Eliminar</small>
                     </div>
                 </div>
                 <div class="header-actions">
+                    <button class="back-btn" id="btn-back-hub" style="margin-right: 10px;">⬅ Volver</button>
                     <button class="save-btn" id="btn-save-grid">Guardar Cambios</button>
                 </div>
             </div>
@@ -279,6 +278,12 @@ function renderDeckTemplate() {
 
     document.getElementById('btn-save-grid').onclick = (e) => {
         localStorage.setItem(`deck_storage_${currentDeckData.id}`, JSON.stringify(currentDeckData));
+        
+        if (window.windowAPI && window.windowAPI.updateButtonsLogic) {
+            window.windowAPI.updateButtonsLogic(currentDeckData.buttons);
+            console.log("🚀 Botones sincronizados con el motor del Main.");
+        }
+
         const btn = e.currentTarget;
         btn.innerText = "¡Guardado!";
         btn.style.backgroundColor = "#4cd137";
@@ -298,7 +303,6 @@ function renderAllButtons() {
     
     Object.keys(currentDeckData.buttons).forEach(btnId => {
         const btnData = currentDeckData.buttons[btnId];
-        // Migración: Asegurar coordenadas si no existen
         if (!btnData.x) { btnData.x = 1; btnData.y = 1; btnData.w = 1; btnData.h = 1; }
         drawButton(layer, btnId, btnData);
     });
@@ -318,7 +322,6 @@ function drawButton(container, id, data) {
         <div class="resize-handle"></div>
     `;
 
-    // Solo abre el editor si NO se estaba arrastrando
     btnEl.onmouseup = (e) => {
         if (e.button === 0 && !btnEl.classList.contains('was-dragging')) {
             renderCommandEditor(id);
@@ -337,9 +340,8 @@ function setupInteractiveEvents() {
     let isResizing = false;
     let startX, startY, initialW, initialH, initialX, initialY;
 
-    // EVENTO PRINCIPAL: DETECTAR CLICK INICIAL
     layer.onmousedown = (e) => {
-        if (e.button !== 0) return; // Solo click izquierdo
+        if (e.button !== 0) return; 
         
         const btn = e.target.closest('.grid-button');
         if (!btn) return;
@@ -362,7 +364,6 @@ function setupInteractiveEvents() {
         const rect = grid.getBoundingClientRect();
         const cellSize = rect.width / 10;
 
-        // SEGUIMIENTO GLOBAL DEL MOUSE
         const onMouseMove = (moveEvent) => {
             const deltaX = Math.round((moveEvent.clientX - startX) / cellSize);
             const deltaY = Math.round((moveEvent.clientY - startY) / cellSize);
@@ -394,7 +395,6 @@ function setupInteractiveEvents() {
         document.addEventListener('mouseup', onMouseUp);
     };
 
-    // CLICK DERECHO PARA ACCIONES
     grid.oncontextmenu = (e) => {
         e.preventDefault();
         const btn = e.target.closest('.grid-button');
@@ -424,40 +424,167 @@ function setupInteractiveEvents() {
 
     document.addEventListener('click', () => contextMenu.classList.add('hidden'));
 }
-/* ============================= */
-/* EDITOR DE COMANDOS            */
-/* ============================= */
-function renderCommandEditor(slotId) {
+
+async function renderCommandEditor(slotId) {
     const btnData = currentDeckData.buttons[slotId];
+    
+    let obsHints = '<small>Sin eventos</small>';
+    let twitchHints = '<small>Sin eventos</small>';
+    
+    try {
+        const events = await window.windowAPI.getAvailableEvents();
+        if (events) {
+            if (events.obs && events.obs.length > 0) {
+                // CAMBIADO: Ahora llama a window.insertCommand
+                obsHints = events.obs.map(ev => 
+                    `<div class="event-tag" title="Click para insertar" onclick="window.insertCommand('${ev}', 'obs')">${ev}</div>`
+                ).join('');
+            }
+            if (events.twitch && events.twitch.length > 0) {
+                // CAMBIADO: Ahora llama a window.insertCommand
+                twitchHints = events.twitch.map(ev => 
+                    `<div class="event-tag" title="Click para insertar" onclick="window.insertCommand('${ev}', 'twitch')">${ev}</div>`
+                ).join('');
+            }
+        }
+    } catch (err) {
+        console.warn("No se pudieron cargar los eventos de ayuda:", err);
+    }
+
+    const initialJson = (btnData.commands && btnData.commands.length > 0) 
+        ? JSON.stringify(btnData.commands, null, 4) 
+        : "[\n    \n]";
+
     mainContent.innerHTML = `
         <div class="command-editor">
             <div class="editor-top-bar">
                 <div class="editor-title">
-                    <input type="text" id="edit-btn-label" class="invisible-title-input" value="${btnData.label}" spellcheck="false">
+                    <span style="color: #6a9955; margin-left: 8px; font-family: monospace; font-weight: bold;">//</span>
+                    <input type="text" id="edit-btn-label" class="editor-title-input" value="${btnData.label}" spellcheck="false" 
+                           style="background: transparent; color: #00a8ff; border: none; outline: none; font-weight: bold; font-size: 1.1rem; font-family: inherit;">
                 </div>
                 <div class="editor-header-btns">
-                     <button class="obs-button" id="btn-cancel-cmd">Cancelar</button>
-                     <button class="save-btn" id="btn-save-cmd">Guardar y Salir</button>
+                     <button class="obs-button" id="btn-test-cmd" style="background-color: #d35400; color: white; font-weight: bold; border: none; padding: 5px 15px; cursor: pointer; border-radius: 4px;">▶ PROBAR</button>
+                     <button class="save-btn" id="btn-save-cmd" style="background-color: #006485; color: white; border: none; padding: 5px 15px; cursor: pointer; border-radius: 4px;">Guardar y Salir</button>
                 </div>
             </div>
-            <div class="command-main-area">
-                <div class="command-list" id="command-list-container">
-                    <div class="empty-commands">No hay comandos. Usa el panel inferior.</div>
+
+            <div class="command-main-area vscode-theme">
+                <div class="editor-help-sidebar">
+                    <div class="help-section">
+                        <div class="help-title" style="color: #569cd6; font-size: 11px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #333;">EVENTOS OBS</div>
+                        <div class="hints-container">${obsHints}</div>
+                    </div>
+                    <div class="help-section" style="margin-top: 15px;">
+                        <div class="help-title" style="color: #569cd6; font-size: 11px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #333;">EVENTOS TWITCH</div>
+                        <div class="hints-container">${twitchHints}</div>
+                    </div>
+                </div>
+
+                <div class="code-container">
+                    <div id="line-numbers" class="line-numbers"></div>
+                    <textarea id="code-editor" class="code-editor-textarea" spellcheck="false" wrap="off">${initialJson}</textarea>
                 </div>
             </div>
-            <div class="editor-footer-tools">
-                <button class="footer-btn">+ Añadir Comando</button>
-                <button class="footer-btn danger">Eliminar Seleccionado</button>
-            </div>
+
+            <footer class="editor-footer-tools" style="height: 55px; background-color: #252a37; border-top: 1px solid #1a1c23; display: flex; justify-content: center; align-items: center;">
+                <div id="json-error-hint" style="color: #f48771; font-size: 11px; position: absolute; left: 20px;"></div>
+                <small style="color: #888; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">UTF-8 | JSON | MODO AUTO-MAP</small>
+            </footer>
         </div>
     `;
 
-    document.getElementById('btn-save-cmd').onclick = () => {
-        btnData.label = document.getElementById('edit-btn-label').value;
-        renderDeckTemplate();
+    const textarea = document.getElementById('code-editor');
+    const lineNumbers = document.getElementById('line-numbers');
+
+    const updateLineNumbers = () => {
+        const lines = textarea.value.split('\n').length;
+        lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => `<div>${i + 1}</div>`).join('');
     };
-    document.getElementById('btn-cancel-cmd').onclick = () => renderDeckTemplate();
+
+    textarea.onscroll = () => { lineNumbers.scrollTop = textarea.scrollTop; };
+    textarea.oninput = updateLineNumbers;
+
+    textarea.onkeydown = function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 4;
+        }
+        setTimeout(updateLineNumbers, 0);
+    };
+
+    updateLineNumbers();
+
+    document.getElementById('btn-test-cmd').onclick = () => {
+        try {
+            const cleanValue = textarea.value.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00A0/g, ' ').trim();
+            const commandsToTest = JSON.parse(cleanValue || "[]");
+            
+            if (window.windowAPI && window.windowAPI.testCommands) {
+                window.windowAPI.testCommands(commandsToTest);
+                const btn = document.getElementById('btn-test-cmd');
+                btn.innerText = "ENVIADO";
+                btn.style.backgroundColor = "#27ae60";
+                setTimeout(() => {
+                    btn.innerText = "▶ PROBAR";
+                    btn.style.backgroundColor = "#d35400";
+                }, 1000);
+            }
+        } catch (err) {
+            document.getElementById('json-error-hint').innerText = "⚠️ Error JSON: " + err.message;
+            textarea.style.outline = "1px solid #f48771";
+        }
+    };
+
+    document.getElementById('btn-save-cmd').onclick = () => {
+        try {
+            const cleanValue = textarea.value.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00A0/g, ' ').trim();
+            btnData.commands = JSON.parse(cleanValue || "[]");
+            btnData.label = document.getElementById('edit-btn-label').value;
+
+            if (window.windowAPI && window.windowAPI.updateButtonsLogic) {
+                window.windowAPI.updateButtonsLogic(currentDeckData.buttons);
+            }
+
+            renderDeckTemplate();
+        } catch (err) {
+            document.getElementById('json-error-hint').innerText = "⚠️ JSON Inválido";
+            textarea.style.outline = "1px solid #f48771";
+        }
+    };
 }
+
+// NUEVO: Función para insertar comandos automáticamente
+window.insertCommand = (eventName, service) => {
+    const textarea = document.getElementById('code-editor');
+    if (!textarea) return;
+
+    const newCommand = {
+        trigger: {
+            service: service,
+            event: eventName
+        },
+        action: {
+            service: service === 'obs' ? 'obs' : 'twitch',
+            message: `Ejecutando ${eventName}`
+        }
+    };
+
+    try {
+        let currentVal = textarea.value.trim();
+        let jsonArr = JSON.parse(currentVal || "[]");
+        jsonArr.push(newCommand);
+        textarea.value = JSON.stringify(jsonArr, null, 4);
+        
+        // Disparar evento para actualizar líneas
+        textarea.dispatchEvent(new Event('input'));
+    } catch (e) {
+        alert("El JSON actual tiene errores. Corrígelo antes de insertar nuevos comandos.");
+    }
+};
 /* ============================= */
 /* LÓGICA DE SETTINGS            */
 /* ============================= */
