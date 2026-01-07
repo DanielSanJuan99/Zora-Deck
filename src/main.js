@@ -1,17 +1,20 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron'; // "Menu" eliminado
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import started from 'electron-squirrel-startup';
 import { conectarOBS, estaConectado } from './obs-websocket.js';
 import { setupTwitch, saveInitialTokens } from './twitch-auth.js';
 
-// CREDENCIALES TWITCH
+// --- DEFINICIÓN DE RUTA LOCAL PARA EL TOKEN ---
+const KICK_TOKEN_PATH = path.join(process.cwd(), 'kick-token.json');
+
+// CREDENCIALES
 const CLIENT_ID = 'hhoos5qi41xfs6qq7z9pe2159mobzo'; 
 const CLIENT_SECRET = 'x49z49ojed04ipb9q372t8yg5mh8xv';
 const REDIRECT_URI = 'http://localhost:3000/callback'; 
 
-// CREDENCIALES KICK
 const KICK_CLIENT_ID = '01KEAJFG7MPHRNM2Z6H12DZBP4';
 const KICK_CLIENT_SECRET = '2e9356cac4483345c1766beba0f17447142aa930439188c4054c4c8df111c9c1'; 
 const KICK_REDIRECT_URI = 'http://localhost:3000/kickauth';
@@ -23,6 +26,7 @@ if (started) {
 let mainWindow;
 let isTwitchConnected = false; 
 let cachedUsername = "";
+let tempKickServer = null; 
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -46,70 +50,15 @@ const createWindow = () => {
 };
 
 /* ========================================= */
-/* LÓGICA DE KICK (CONFIGURACIÓN ANTI-BLOQUEO) */
+/* LÓGICA DE KICK (PERSISTENCIA LOCAL)       */
 /* ========================================= */
 
-ipcMain.on('kick:auth-request', async (event) => {
-    const codeVerifier = crypto.randomBytes(32).toString('base64url');
-    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
-    const state = crypto.randomBytes(16).toString('hex');
-
-    const authWindow = new BrowserWindow({
-        width: 600,
-        height: 800,
-        parent: mainWindow,
-        modal: true,
-        autoHideMenuBar: true,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            // CAMBIO: Sesión volátil para evitar rastreo de intentos fallidos
-            partition: 'kick_temp_' + Date.now(), 
-            webSecurity: true
-        }
-    });
-
-    // Limpieza absoluta antes de cargar
-    await authWindow.webContents.session.clearStorageData();
-
-    // User Agent EXACTO de Chrome 120 (sin rastro de Electron)
-    const chromeUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-    authWindow.webContents.setUserAgent(chromeUA);
-
-    const KICK_AUTH_URL = 'https://id.kick.com/oauth/authorize';
-    const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: KICK_CLIENT_ID,
-        redirect_uri: KICK_REDIRECT_URI,
-        scope: 'user:read chat:write',
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-        state: state
-    });
-
-    // Cargamos con Referer para saltar protecciones de Cross-Origin
-    authWindow.loadURL(`${KICK_AUTH_URL}?${params.toString()}`, { 
-        userAgent: chromeUA,
-        extraHeaders: 'Referer: https://kick.com/'
-    });
-
-    const checkUrl = (url) => {
-        if (url.includes('code=')) {
-            const urlObj = new URL(url);
-            const code = urlObj.searchParams.get('code');
-            const returnedState = urlObj.searchParams.get('state');
-
-            if (code && returnedState === state) {
-                mainWindow.webContents.send('kick:auth-success', { code, codeVerifier });
-                authWindow.destroy();
-            }
-        }
-    };
-
-    authWindow.webContents.on('will-navigate', (e, url) => checkUrl(url));
-    authWindow.webContents.on('will-redirect', (e, url) => checkUrl(url));
+// Verifica si el archivo existe en la carpeta del proyecto
+ipcMain.handle('kick:check-status', async () => {
+    return { success: fs.existsSync(KICK_TOKEN_PATH) };
 });
 
+// Intercambio de token y guardado local
 ipcMain.handle('kick:get-token', async (event, { code, codeVerifier }) => {
     try {
         const response = await fetch('https://id.kick.com/oauth/token', {
@@ -126,19 +75,66 @@ ipcMain.handle('kick:get-token', async (event, { code, codeVerifier }) => {
         });
 
         const data = await response.json();
+
         if (data.access_token) {
-            const tokenPath = path.join(app.getPath('userData'), 'kick-token.json');
-            fs.writeFileSync(tokenPath, JSON.stringify(data));
+            // Guardamos el JSON en la raíz de tu carpeta de GitHub
+            fs.writeFileSync(KICK_TOKEN_PATH, JSON.stringify(data, null, 2));
+            console.log("✅ Token de Kick guardado en la carpeta del proyecto:", KICK_TOKEN_PATH);
             return { success: true };
         }
-        return { success: false, error: 'Token no recibido' };
+        
+        console.error("❌ Kick API Error:", data);
+        return { success: false, error: data.message || 'Token no recibido' };
     } catch (error) {
+        console.error("❌ Error en get-token:", error);
         return { success: false, error: error.message };
     }
 });
 
+ipcMain.on('kick:auth-request', async (event) => {
+    const codeVerifier = crypto.randomBytes(32).toString('base64url');
+    const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+    const state = crypto.randomBytes(16).toString('hex');
+
+    if (tempKickServer) tempKickServer.close();
+
+    tempKickServer = http.createServer((req, res) => {
+        const urlObj = new URL(req.url, 'http://localhost:3000');
+        if (urlObj.pathname === '/kickauth') {
+            const code = urlObj.searchParams.get('code');
+            const returnedState = urlObj.searchParams.get('state');
+
+            if (code && returnedState === state) {
+                res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                res.end('<h2>✅ ¡Autorización exitosa!</h2><p>Vuelve a la aplicación.</p>');
+                
+                mainWindow.webContents.send('kick:auth-success', { code, codeVerifier });
+                
+                tempKickServer.close();
+                tempKickServer = null;
+            } else {
+                res.writeHead(400);
+                res.end('Error de validacion.');
+            }
+        }
+    });
+
+    tempKickServer.listen(3000, () => {
+        const params = new URLSearchParams({
+            response_type: 'code',
+            client_id: KICK_CLIENT_ID,
+            redirect_uri: KICK_REDIRECT_URI,
+            scope: 'user:read chat:write',
+            code_challenge: codeChallenge,
+            code_challenge_method: 'S256',
+            state: state
+        });
+        shell.openExternal(`https://id.kick.com/oauth/authorize?${params.toString()}`);
+    });
+});
+
 /* ========================================= */
-/* LÓGICA DE TWITCH                          */
+/* LÓGICA DE TWITCH                           */
 /* ========================================= */
 
 ipcMain.handle('twitch:get-status', async () => {
@@ -175,7 +171,6 @@ ipcMain.on('twitch:auth-request', async (event) => {
     if (url.includes(REDIRECT_URI)) {
       const urlObj = new URL(url);
       const code = urlObj.searchParams.get('code');
-
       if (code && !isResponded) {
         isResponded = true;
         authWindow.destroy(); 
@@ -211,7 +206,7 @@ ipcMain.on('twitch:auth-request', async (event) => {
 });
 
 /* ========================================= */
-/* CONTROLES DE VENTANA E IPC                */
+/* CONTROLES DE VENTANA                       */
 /* ========================================= */
 
 ipcMain.on('control:minimize', (event) => {
@@ -236,20 +231,6 @@ ipcMain.on('obs:status-request', (event) => {
 ipcMain.on('obs:connect-request', async (event, config) => {
   const resultado = await conectarOBS(config.ip, config.port, config.password);
   event.reply('obs:connect-response', resultado);
-});
-
-ipcMain.on('context-menu:show', (e, params) => {
-  const template = [
-    { label: 'Opción 1', click: () => {} },
-    { type: 'separator' },
-    { label: 'Copiar Deck', role: 'copy' },
-    { label: 'Eliminar Deck', role: 'delete' }
-  ];
-  const menu = Menu.buildFromTemplate(template);
-  const win = BrowserWindow.fromWebContents(e.sender);
-  setTimeout(() => {
-    menu.popup({ window: win, x: Math.round(params.x), y: Math.round(params.y) })
-  }, 100)
 });
 
 /* ========================================= */

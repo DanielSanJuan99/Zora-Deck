@@ -1,5 +1,3 @@
-// See the Electron documentation for details on how to use preload scripts:
-// https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('windowAPI', {
@@ -16,7 +14,7 @@ contextBridge.exposeInMainWorld('windowAPI', {
   },
 
   // --- Lógica de Twitch ---
-  sendTwitchAuth: () => ipcRenderer.send('twitch:auth-request'), // Ajustado para coincidir con tu settings
+  sendTwitchAuth: () => ipcRenderer.send('twitch:auth-request'),
   getTwitchStatus: () => ipcRenderer.invoke('twitch:get-status'),
   onTwitchResponse: (callback) => {
     ipcRenderer.removeAllListeners('twitch:auth-response');
@@ -26,12 +24,17 @@ contextBridge.exposeInMainWorld('windowAPI', {
     ipcRenderer.on('twitch:chat-message', (event, arg) => callback(arg));
   },
 
-  // --- Lógica de KICK (AÑADIDO) ---
-  // Este es el que dispara la ventana nativa que evita el error -105
+  // --- Lógica de KICK ---
   sendKickAuth: () => ipcRenderer.send('kick:auth-request'),
   
-  // Este escucha cuando el Main termina de crear el archivo token.json
+  // Intercambia el código temporal por el token definitivo
+  getKickToken: (data) => ipcRenderer.invoke('kick:get-token', data),
+
+  // NUEVO: Verifica si el archivo kick-token.json existe para mantener el botón "Vinculado"
+  checkKickStatus: () => ipcRenderer.invoke('kick:check-status'),
+
   onKickSuccess: (callback) => {
+    // Escucha el código de autorización proveniente del servidor local
     ipcRenderer.removeAllListeners('kick:auth-success');
     ipcRenderer.on('kick:auth-success', (event, arg) => callback(arg));
   }

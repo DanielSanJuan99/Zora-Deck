@@ -471,7 +471,7 @@ function initSettingsLogic() {
     const btnAuthTwitch = document.getElementById('btn-auth-twitch');
     const twitchStatus = document.getElementById('twitch-status-msg');
     const btnAuthKick = document.getElementById('btn-auth-kick');
-    const kickStatus = document.getElementById('kick-status-msg'); // Asumiendo que tienes este ID en el HTML
+    const kickStatus = document.getElementById('kick-status-msg');
 
     // 1. Navegación de pestañas interna
     sidebarItems.forEach(item => {
@@ -485,12 +485,17 @@ function initSettingsLogic() {
         };
     });
 
-    // 2. --- ESTADO INICIAL (Verificar conexiones al cargar el panel) ---
+    // 2. --- ESTADO INICIAL ---
     window.windowAPI.checkOBSStatus();
     
-    // Verificar si Twitch ya está conectado
+    // Verificar estado de Twitch
     window.windowAPI.getTwitchStatus().then(res => {
         updateTwitchUI(res);
+    });
+
+    // NUEVO: Verificar si ya existe el token de Kick guardado en el PC
+    window.windowAPI.checkKickStatus().then(res => {
+        updateKickUI(res);
     });
 
     // 3. --- LÓGICA OBS ---
@@ -534,13 +539,14 @@ function initSettingsLogic() {
         if (!btnAuthTwitch) return;
         if (res.success) {
             btnAuthTwitch.innerText = "Cuenta Vinculada";
-            btnAuthTwitch.classList.add('connected'); // Opcional para CSS
+            btnAuthTwitch.classList.add('connected');
             if (twitchStatus) {
                 twitchStatus.innerText = `Conectado como: ${res.username}`;
                 twitchStatus.className = "status-label status-connected";
             }
         } else {
             btnAuthTwitch.innerText = "Vincular Cuenta";
+            btnAuthTwitch.classList.remove('connected');
             if (twitchStatus) {
                 twitchStatus.innerText = "Desconectado";
                 twitchStatus.className = "status-label status-disconnected";
@@ -549,25 +555,47 @@ function initSettingsLogic() {
     }
 
     // 5. --- LÓGICA KICK ---
+    
+    // Función común para actualizar la UI de Kick (igual que la de Twitch)
+    function updateKickUI(res) {
+        if (!btnAuthKick) return;
+        if (res.success) {
+            btnAuthKick.innerText = "Cuenta Vinculada";
+            btnAuthKick.classList.add('connected');
+            if (kickStatus) {
+                kickStatus.innerText = "Conectado";
+                kickStatus.className = "status-label status-connected";
+            }
+        } else {
+            btnAuthKick.innerText = "Vincular Cuenta";
+            btnAuthKick.classList.remove('connected');
+            if (kickStatus) {
+                kickStatus.innerText = "Desconectado";
+                kickStatus.className = "status-label status-disconnected";
+            }
+        }
+    }
+
     if (btnAuthKick) {
         btnAuthKick.onclick = () => {
-            btnAuthKick.innerText = "Abriendo Kick...";
-            authenticateKick(); 
+            btnAuthKick.innerText = "Conectando...";
+            window.windowAPI.sendKickAuth(); 
         };
     }
 
-    // Escuchamos el éxito de Kick desde el Main
-    window.windowAPI.onKickSuccess((data) => {
-        if (btnAuthKick) {
-            btnAuthKick.innerText = "Kick Vinculado";
-            btnAuthKick.style.backgroundColor = "#53fc18"; // Color verde neón de Kick
-            btnAuthKick.style.color = "#000";
+    // Escuchamos el éxito de la autorización desde el servidor temporal
+    window.windowAPI.onKickSuccess(async (data) => {
+        console.log("Código recibido, solicitando intercambio por token...");
+        
+        // Intercambiamos el código por el access_token y lo guardamos en archivo
+        const result = await window.windowAPI.getKickToken(data);
+        
+        // Actualizamos la interfaz con el resultado
+        updateKickUI(result);
+
+        if (!result.success) {
+            alert("Error al vincular Kick: " + result.error);
         }
-        if (kickStatus) {
-            kickStatus.innerText = "Sesión Iniciada";
-            kickStatus.className = "status-label status-connected";
-        }
-        console.log("Código de Kick recibido:", data.code);
     });
 }
 /* ============================= */
