@@ -8,11 +8,8 @@ import { conectarOBS, estaConectado, getOBSInstance } from './obs-websocket.js';
 import { setupTwitch, saveInitialTokens, sendTwitchMessage } from './twitch-auth.js'; 
 
 // --- CONFIGURACIÓN DE RUTAS DINÁMICAS (CORRECCIÓN VITE) ---
-// Detectamos si estamos en modo desarrollo
 const isDev = !app.isPackaged;
 
-// Si es desarrollo, buscamos en la carpeta 'src/config' de tu proyecto
-// Si es producción, buscamos en la carpeta 'config' junto al ejecutable
 const CONFIG_FOLDER = isDev 
     ? path.join(process.cwd(), 'src', 'config') 
     : path.join(process.cwd(), 'config');
@@ -26,12 +23,10 @@ console.log("📂 MODO DESARROLLO:", isDev);
 console.log("📂 RUTA DE CONFIGURACIÓN:", CONFIG_FOLDER);
 console.log("-----------------------------------------");
 
-// Asegurar que la carpeta config existe
 if (!fs.existsSync(CONFIG_FOLDER)) {
     fs.mkdirSync(CONFIG_FOLDER, { recursive: true });
 }
 
-// Función auxiliar para leer JSON de forma segura
 function loadConfigList(filePath) {
     try {
         if (fs.existsSync(filePath)) {
@@ -49,7 +44,7 @@ function loadConfigList(filePath) {
     return [];
 }
 
-// Carga inicial de listas (Eventos disponibles)
+// Carga inicial
 let obsEvents = loadConfigList(OBS_EVENTS_PATH);
 let twitchEvents = loadConfigList(TWITCH_EVENTS_PATH);
 
@@ -163,7 +158,6 @@ ipcMain.on('obs:connect-request', async (event, config) => {
   
   if (resultado.success) {
       const obs = getOBSInstance();
-      // Recargar eventos al conectar
       obsEvents = loadConfigList(OBS_EVENTS_PATH);
       console.log(`✅ OBS Conectado. Escuchando ${obsEvents.length} eventos.`);
 
@@ -179,15 +173,15 @@ ipcMain.on('obs:connect-request', async (event, config) => {
 
 /**
  * Handler para el editor (HINTS de eventos)
+ * ACTUALIZADO: Ahora devuelve los objetos completos para permitir categorías en el acordeón
  */
 ipcMain.handle('get-available-events', () => {
-    // Forzamos recarga para asegurar que lee los archivos correctos de src/config
     obsEvents = loadConfigList(OBS_EVENTS_PATH);
     twitchEvents = loadConfigList(TWITCH_EVENTS_PATH);
 
     return {
-        obs: obsEvents.map(e => e.triggerName).filter(Boolean),
-        twitch: twitchEvents.map(e => e.triggerName).filter(Boolean)
+        obs: obsEvents,
+        twitch: twitchEvents
     };
 });
 

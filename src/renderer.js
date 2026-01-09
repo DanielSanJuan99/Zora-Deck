@@ -237,9 +237,9 @@ function openDeck(id, defaultName) {
     renderDeckTemplate();
 }
 
-/* ======================================= */
-/* EDITOR DE GRID INTERACTIVO (SAMMI STYLE) */
-/* ======================================= */
+/* ======================================================= */
+/* EDITOR DE GRID INTERACTIVO (SAMMI STYLE) - VERSIÓN FINAL */
+/* ======================================================= */
 
 function renderDeckTemplate() {
     const { id, name } = currentDeckData;
@@ -250,11 +250,11 @@ function renderDeckTemplate() {
                 <div class="header-info">
                     <div class="deck-title-container">
                         <h2 class="deck-title-static">${name}</h2>
-                        <small style="color:#666; display:block;">Click Izquierdo: Arrastrar/Redimensionar | Click Derecho: Crear/Eliminar</small>
+                        <small class="header-subtitle">Click Izquierdo: Abrir Editor | Arrastrar: Mover | Click Derecho: Menú</small>
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="back-btn" id="btn-back-hub" style="margin-right: 10px;">⬅ Volver</button>
+                    <button class="back-btn" id="btn-back-hub">⬅ Volver</button>
                     <button class="save-btn" id="btn-save-grid">Guardar Cambios</button>
                 </div>
             </div>
@@ -278,18 +278,15 @@ function renderDeckTemplate() {
 
     document.getElementById('btn-save-grid').onclick = (e) => {
         localStorage.setItem(`deck_storage_${currentDeckData.id}`, JSON.stringify(currentDeckData));
-        
-        if (window.windowAPI && window.windowAPI.updateButtonsLogic) {
+        if (window.windowAPI?.updateButtonsLogic) {
             window.windowAPI.updateButtonsLogic(currentDeckData.buttons);
-            console.log("🚀 Botones sincronizados con el motor del Main.");
         }
-
         const btn = e.currentTarget;
+        btn.classList.add('saved-success');
         btn.innerText = "¡Guardado!";
-        btn.style.backgroundColor = "#4cd137";
         setTimeout(() => {
+            btn.classList.remove('saved-success');
             btn.innerText = "Guardar Cambios";
-            btn.style.backgroundColor = "";
         }, 1500);
     };
 
@@ -312,7 +309,6 @@ function drawButton(container, id, data) {
     const btnEl = document.createElement('div');
     btnEl.className = 'grid-button';
     btnEl.id = id;
-    
     btnEl.style.gridColumn = `${data.x} / span ${data.w}`;
     btnEl.style.gridRow = `${data.y} / span ${data.h}`;
     
@@ -342,14 +338,12 @@ function setupInteractiveEvents() {
 
     layer.onmousedown = (e) => {
         if (e.button !== 0) return; 
-        
         const btn = e.target.closest('.grid-button');
         if (!btn) return;
 
         e.preventDefault();
         activeBtn = btn;
         const btnData = currentDeckData.buttons[btn.id];
-        
         isResizing = e.target.classList.contains('resize-handle');
         activeBtn.classList.add('dragging');
         activeBtn.classList.remove('was-dragging');
@@ -361,16 +355,13 @@ function setupInteractiveEvents() {
         initialW = btnData.w;
         initialH = btnData.h;
 
-        const rect = grid.getBoundingClientRect();
-        const cellSize = rect.width / 10;
-
         const onMouseMove = (moveEvent) => {
+            const rect = grid.getBoundingClientRect();
+            const cellSize = rect.width / 10;
             const deltaX = Math.round((moveEvent.clientX - startX) / cellSize);
             const deltaY = Math.round((moveEvent.clientY - startY) / cellSize);
 
-            if (deltaX !== 0 || deltaY !== 0) {
-                activeBtn.classList.add('was-dragging');
-            }
+            if (deltaX !== 0 || deltaY !== 0) activeBtn.classList.add('was-dragging');
 
             if (isResizing) {
                 btnData.w = Math.max(1, initialW + deltaX);
@@ -400,7 +391,6 @@ function setupInteractiveEvents() {
         const btn = e.target.closest('.grid-button');
         const rect = grid.getBoundingClientRect();
         const cellW = rect.width / 10;
-        
         const clickX = Math.floor((e.clientX - rect.left) / cellW) + 1;
         const clickY = Math.floor((e.clientY - rect.top) / cellW) + 1;
 
@@ -428,74 +418,131 @@ function setupInteractiveEvents() {
 async function renderCommandEditor(slotId) {
     const btnData = currentDeckData.buttons[slotId];
     
-    let obsHints = '<small>Sin eventos</small>';
-    let twitchHints = '<small>Sin eventos</small>';
-    
-    try {
-        const events = await window.windowAPI.getAvailableEvents();
-        if (events) {
-            if (events.obs && events.obs.length > 0) {
-                // CAMBIADO: Ahora llama a window.insertCommand
-                obsHints = events.obs.map(ev => 
-                    `<div class="event-tag" title="Click para insertar" onclick="window.insertCommand('${ev}', 'obs')">${ev}</div>`
-                ).join('');
-            }
-            if (events.twitch && events.twitch.length > 0) {
-                // CAMBIADO: Ahora llama a window.insertCommand
-                twitchHints = events.twitch.map(ev => 
-                    `<div class="event-tag" title="Click para insertar" onclick="window.insertCommand('${ev}', 'twitch')">${ev}</div>`
-                ).join('');
-            }
-        }
-    } catch (err) {
-        console.warn("No se pudieron cargar los eventos de ayuda:", err);
-    }
-
-    const initialJson = (btnData.commands && btnData.commands.length > 0) 
-        ? JSON.stringify(btnData.commands, null, 4) 
-        : "[\n    \n]";
-
     mainContent.innerHTML = `
         <div class="command-editor">
             <div class="editor-top-bar">
                 <div class="editor-title">
-                    <span style="color: #6a9955; margin-left: 8px; font-family: monospace; font-weight: bold;">//</span>
-                    <input type="text" id="edit-btn-label" class="editor-title-input" value="${btnData.label}" spellcheck="false" 
-                           style="background: transparent; color: #00a8ff; border: none; outline: none; font-weight: bold; font-size: 1.1rem; font-family: inherit;">
+                    <span class="title-prefix">//</span>
+                    <input type="text" id="edit-btn-label" class="editor-title-input" value="${btnData.label}" spellcheck="false">
                 </div>
                 <div class="editor-header-btns">
-                     <button class="obs-button" id="btn-test-cmd" style="background-color: #d35400; color: white; font-weight: bold; border: none; padding: 5px 15px; cursor: pointer; border-radius: 4px;">▶ PROBAR</button>
-                     <button class="save-btn" id="btn-save-cmd" style="background-color: #006485; color: white; border: none; padding: 5px 15px; cursor: pointer; border-radius: 4px;">Guardar y Salir</button>
+                     <button class="btn-test" id="btn-test-cmd">▶ PROBAR</button>
+                     <button class="btn-save" id="btn-save-cmd">Guardar y Salir</button>
                 </div>
             </div>
 
-            <div class="command-main-area vscode-theme">
+            <div class="command-main-area">
                 <div class="editor-help-sidebar">
-                    <div class="help-section">
-                        <div class="help-title" style="color: #569cd6; font-size: 11px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #333;">EVENTOS OBS</div>
-                        <div class="hints-container">${obsHints}</div>
+                    <div class="search-box-container">
+                        <input type="text" id="event-search" placeholder="🔍 Buscar eventos..." autocomplete="off">
                     </div>
-                    <div class="help-section" style="margin-top: 15px;">
-                        <div class="help-title" style="color: #569cd6; font-size: 11px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #333;">EVENTOS TWITCH</div>
-                        <div class="hints-container">${twitchHints}</div>
-                    </div>
+                    <div id="events-accordion" class="events-list"></div>
                 </div>
 
                 <div class="code-container">
                     <div id="line-numbers" class="line-numbers"></div>
-                    <textarea id="code-editor" class="code-editor-textarea" spellcheck="false" wrap="off">${initialJson}</textarea>
+                    <textarea id="code-editor" class="code-editor-textarea" spellcheck="false" wrap="off">${JSON.stringify(btnData.commands || [], null, 4)}</textarea>
                 </div>
             </div>
 
-            <footer class="editor-footer-tools" style="height: 55px; background-color: #252a37; border-top: 1px solid #1a1c23; display: flex; justify-content: center; align-items: center;">
-                <div id="json-error-hint" style="color: #f48771; font-size: 11px; position: absolute; left: 20px;"></div>
-                <small style="color: #888; font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">UTF-8 | JSON | MODO AUTO-MAP</small>
+            <footer class="editor-footer-tools">
+                <div id="json-error-hint" class="error-hint"></div>
+                <small class="footer-info">UTF-8 | JSON | ESTRUCTURA JERÁRQUICA</small>
             </footer>
         </div>
     `;
 
     const textarea = document.getElementById('code-editor');
     const lineNumbers = document.getElementById('line-numbers');
+    const searchInput = document.getElementById('event-search');
+
+    const availableEvents = await window.windowAPI.getAvailableEvents();
+    const allEvents = [
+        ...(availableEvents.obs || []).map(e => ({ ...e, service: 'obs' })),
+        ...(availableEvents.twitch || []).map(e => ({ ...e, service: 'twitch' }))
+    ];
+
+    const renderCategorizedEvents = (filter = "") => {
+        const accordion = document.getElementById('events-accordion');
+        if (!accordion) return;
+        accordion.innerHTML = "";
+        
+        const tree = {};
+
+        allEvents.forEach(ev => {
+            const name = ev.triggerName || "Evento";
+            if (!filter || name.toLowerCase().includes(filter.toLowerCase())) {
+                const cat = (ev.category || ev.service || "Otros").toUpperCase();
+                const sub = ev.subCategory || "General";
+                if (!tree[cat]) tree[cat] = {};
+                if (!tree[cat][sub]) tree[cat][sub] = [];
+                tree[cat][sub].push(ev);
+            }
+        });
+
+        Object.entries(tree).forEach(([catName, subs]) => {
+            const catGroup = document.createElement('div');
+            const isCatOpen = filter.length > 0;
+            const serviceKey = catName.toLowerCase().includes('twitch') ? 'twitch' : (catName.toLowerCase().includes('obs') ? 'obs' : 'default');
+            
+            catGroup.className = "category-group";
+            catGroup.innerHTML = `
+                <div class="category-header" data-service="${serviceKey}">
+                    <span class="arrow ${isCatOpen ? 'open' : ''}">▶</span>
+                    <span class="cat-label">${catName}</span>
+                </div>
+                <div class="category-content" style="display: ${isCatOpen ? 'block' : 'none'};"></div>
+            `;
+
+            const catContent = catGroup.querySelector('.category-content');
+            const catArrow = catGroup.querySelector('.arrow');
+
+            Object.entries(subs).forEach(([subName, items]) => {
+                const subGroup = document.createElement('div');
+                subGroup.className = "subcategory-group";
+                subGroup.innerHTML = `
+                    <div class="subcategory-header">
+                        <span class="arrow-sub ${isCatOpen ? 'open' : ''}">▶</span>
+                        <span class="sub-label">${subName}</span>
+                    </div>
+                    <div class="subcategory-content" style="display: ${isCatOpen ? 'block' : 'none'};"></div>
+                `;
+
+                const subContent = subGroup.querySelector('.subcategory-content');
+                const subArrow = subGroup.querySelector('.arrow-sub');
+
+                items.forEach(ev => {
+                    const item = document.createElement('div');
+                    item.className = "event-item";
+                    item.innerText = ev.triggerName;
+                    item.draggable = true;
+                    item.onclick = () => window.insertCommand(ev.triggerName, ev.service || catName.toLowerCase());
+                    item.ondragstart = (e) => {
+                        e.dataTransfer.setData('application/json', JSON.stringify({event: ev.triggerName, service: ev.service || catName.toLowerCase()}));
+                    };
+                    subContent.appendChild(item);
+                });
+
+                subGroup.querySelector('.subcategory-header').onclick = (e) => {
+                    e.stopPropagation();
+                    const isOpen = subContent.style.display !== "none";
+                    subContent.style.display = isOpen ? "none" : "block";
+                    subArrow.classList.toggle('open', !isOpen);
+                };
+                catContent.appendChild(subGroup);
+            });
+
+            catGroup.querySelector('.category-header').onclick = () => {
+                const isOpen = catContent.style.display !== "none";
+                catContent.style.display = isOpen ? "none" : "block";
+                catArrow.classList.toggle('open', !isOpen);
+            };
+            accordion.appendChild(catGroup);
+        });
+    };
+
+    renderCategorizedEvents();
+    searchInput.oninput = (e) => renderCategorizedEvents(e.target.value);
 
     const updateLineNumbers = () => {
         const lines = textarea.value.split('\n').length;
@@ -504,14 +551,12 @@ async function renderCommandEditor(slotId) {
 
     textarea.onscroll = () => { lineNumbers.scrollTop = textarea.scrollTop; };
     textarea.oninput = updateLineNumbers;
-
     textarea.onkeydown = function(e) {
         if (e.key === 'Tab') {
             e.preventDefault();
             const start = this.selectionStart;
-            const end = this.selectionEnd;
-            this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
-            this.selectionStart = this.selectionEnd = start + 4;
+            this.value = this.value.substring(0, start) + "    " + this.value.substring(this.selectionEnd);
+            this.selectionEnd = start + 4;
         }
         setTimeout(updateLineNumbers, 0);
     };
@@ -520,70 +565,33 @@ async function renderCommandEditor(slotId) {
 
     document.getElementById('btn-test-cmd').onclick = () => {
         try {
-            const cleanValue = textarea.value.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00A0/g, ' ').trim();
-            const commandsToTest = JSON.parse(cleanValue || "[]");
-            
-            if (window.windowAPI && window.windowAPI.testCommands) {
-                window.windowAPI.testCommands(commandsToTest);
-                const btn = document.getElementById('btn-test-cmd');
-                btn.innerText = "ENVIADO";
-                btn.style.backgroundColor = "#27ae60";
-                setTimeout(() => {
-                    btn.innerText = "▶ PROBAR";
-                    btn.style.backgroundColor = "#d35400";
-                }, 1000);
-            }
-        } catch (err) {
-            document.getElementById('json-error-hint').innerText = "⚠️ Error JSON: " + err.message;
-            textarea.style.outline = "1px solid #f48771";
-        }
+            const cmd = JSON.parse(textarea.value.trim() || "[]");
+            if (window.windowAPI?.testCommands) window.windowAPI.testCommands(cmd);
+        } catch (e) { document.getElementById('json-error-hint').innerText = "⚠️ Error JSON"; }
     };
 
     document.getElementById('btn-save-cmd').onclick = () => {
         try {
-            const cleanValue = textarea.value.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\u00A0/g, ' ').trim();
-            btnData.commands = JSON.parse(cleanValue || "[]");
+            btnData.commands = JSON.parse(textarea.value.trim() || "[]");
             btnData.label = document.getElementById('edit-btn-label').value;
-
-            if (window.windowAPI && window.windowAPI.updateButtonsLogic) {
-                window.windowAPI.updateButtonsLogic(currentDeckData.buttons);
-            }
-
             renderDeckTemplate();
-        } catch (err) {
-            document.getElementById('json-error-hint').innerText = "⚠️ JSON Inválido";
-            textarea.style.outline = "1px solid #f48771";
-        }
+        } catch (e) { document.getElementById('json-error-hint').innerText = "⚠️ JSON Inválido"; }
     };
 }
 
-// NUEVO: Función para insertar comandos automáticamente
 window.insertCommand = (eventName, service) => {
     const textarea = document.getElementById('code-editor');
     if (!textarea) return;
-
-    const newCommand = {
-        trigger: {
-            service: service,
-            event: eventName
-        },
-        action: {
-            service: service === 'obs' ? 'obs' : 'twitch',
-            message: `Ejecutando ${eventName}`
-        }
+    const newCmd = {
+        trigger: { service, event: eventName },
+        action: { service, message: `Ejecutando ${eventName}` }
     };
-
     try {
-        let currentVal = textarea.value.trim();
-        let jsonArr = JSON.parse(currentVal || "[]");
-        jsonArr.push(newCommand);
-        textarea.value = JSON.stringify(jsonArr, null, 4);
-        
-        // Disparar evento para actualizar líneas
+        let json = JSON.parse(textarea.value.trim() || "[]");
+        json.push(newCmd);
+        textarea.value = JSON.stringify(json, null, 4);
         textarea.dispatchEvent(new Event('input'));
-    } catch (e) {
-        alert("El JSON actual tiene errores. Corrígelo antes de insertar nuevos comandos.");
-    }
+    } catch (e) { alert("Arregla el JSON antes de añadir más."); }
 };
 /* ============================= */
 /* LÓGICA DE SETTINGS            */
