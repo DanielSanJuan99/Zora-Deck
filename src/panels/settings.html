@@ -6,14 +6,14 @@
 
   <div class="settings-body">
     <aside class="settings-sidebar">
-      <div class="sidebar-item" data-tab="general">General</div>
-      <div class="sidebar-item active" data-tab="conexion">Conexión</div>
+      <div class="sidebar-item active" data-tab="general">General</div>
+      <div class="sidebar-item" data-tab="conexion">Conexión</div>
       <div class="sidebar-item" data-tab="servicios">Servicios</div>
     </aside>
 
     <section class="settings-main-content">
       
-      <div id="tab-general" class="settings-section hidden">
+      <div id="tab-general" class="settings-section">
         <div class="config-group">
           <label class="main-label-extended">Ajustes Generales</label>
         </div>
@@ -24,7 +24,7 @@
         </div>
       </div>
 
-      <div id="tab-conexion" class="settings-section">
+      <div id="tab-conexion" class="settings-section hidden">
         <div class="config-group">
           <label class="main-label-extended">Conexión con OBS Websocket</label>
         </div>
@@ -61,7 +61,6 @@
 
         <div class="config-box">
           <h4>Integración de Twitch</h4>
-          
           <div class="config-row" style="justify-content: space-between; align-items: center; padding: 5px 0;">
             <div style="display: flex; flex-direction: column; gap: 4px;">
               <span style="color: #a970ff; font-weight: bold; font-size: 14px;">Twitch TV</span>
@@ -71,11 +70,15 @@
           </div>
         </div>
 
-        <div class="config-box" style="opacity: 0.6; margin-top: 20px;">
+        <div class="config-box" style="margin-top: 20px;">
           <h4>Integración de Kick</h4>
-          <p style="text-align: center; color: #666; font-size: 12px; margin: 10px 0;">
-            Soporte para Kick próximamente.
-          </p>
+          <div class="config-row" style="justify-content: space-between; align-items: center; padding: 5px 0;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="color: #53fc18; font-weight: bold; font-size: 14px;">Kick.com</span>
+              <span style="color: #888; font-size: 11px;">Vincular cuenta para chat y alertas de Kick.</span>
+            </div>
+            <button id="btn-auth-kick" class="obs-button kick-btn">Vincular Cuenta</button>
+          </div>
         </div>
       </div>
 

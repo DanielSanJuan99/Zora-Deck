@@ -1,0 +1,42 @@
+[
+    { "socketEvent": "CurrentProgramSceneChanged", "triggerName": "SceneChanged", "category": "OBS", "subCategory": "Escenas" },
+    { "socketEvent": "CurrentPreviewSceneChanged", "triggerName": "PreviewSceneChanged", "category": "OBS", "subCategory": "Escenas" },
+    { "socketEvent": "SceneCreated", "triggerName": "SceneCreated", "category": "OBS", "subCategory": "Escenas" },
+    { "socketEvent": "SceneRemoved", "triggerName": "SceneRemoved", "category": "OBS", "subCategory": "Escenas" },
+    { "socketEvent": "SceneNameChanged", "triggerName": "SceneRenamed", "category": "OBS", "subCategory": "Escenas" },
+    { "socketEvent": "StudioModeStateChanged", "triggerName": "StudioModeToggle", "category": "OBS", "subCategory": "Escenas" },
+    { "socketEvent": "SceneTransitionStarted", "triggerName": "TransitionStarted", "category": "OBS", "subCategory": "Escenas" },
+    { "socketEvent": "SceneTransitionEnded", "triggerName": "TransitionEnded", "category": "OBS", "subCategory": "Escenas" },
+
+    { "socketEvent": "InputMuteStateChanged", "triggerName": "MuteChanged", "category": "OBS", "subCategory": "Audio" },
+    { "socketEvent": "InputVolumeChanged", "triggerName": "VolumeChanged", "category": "OBS", "subCategory": "Audio" },
+    { "socketEvent": "InputAudioSyncOffsetChanged", "triggerName": "AudioSyncChanged", "category": "OBS", "subCategory": "Audio" },
+    { "socketEvent": "InputAudioTracksChanged", "triggerName": "AudioTracksChanged", "category": "OBS", "subCategory": "Audio" },
+    { "socketEvent": "InputAudioMonitorTypeChanged", "triggerName": "AudioMonitorChanged", "category": "OBS", "subCategory": "Audio" },
+
+    { "socketEvent": "InputCreated", "triggerName": "InputCreated", "category": "OBS", "subCategory": "Fuentes (Inputs)" },
+    { "socketEvent": "InputRemoved", "triggerName": "InputRemoved", "category": "OBS", "subCategory": "Fuentes (Inputs)" },
+    { "socketEvent": "InputNameChanged", "triggerName": "InputRenamed", "category": "OBS", "subCategory": "Fuentes (Inputs)" },
+    { "socketEvent": "InputActiveStateChanged", "triggerName": "InputActiveState", "category": "OBS", "subCategory": "Fuentes (Inputs)" },
+    { "socketEvent": "InputShowStateChanged", "triggerName": "InputShowState", "category": "OBS", "subCategory": "Fuentes (Inputs)" },
+
+    { "socketEvent": "SceneItemCreated", "triggerName": "SourceAddedToScene", "category": "OBS", "subCategory": "Items de Escena" },
+    { "socketEvent": "SceneItemRemoved", "triggerName": "SourceRemovedFromScene", "category": "OBS", "subCategory": "Items de Escena" },
+    { "socketEvent": "SceneItemEnableStateChanged", "triggerName": "SourceVisibilityChanged", "category": "OBS", "subCategory": "Items de Escena" },
+    { "socketEvent": "SceneItemTransformChanged", "triggerName": "SourceTransformChanged", "category": "OBS", "subCategory": "Items de Escena" },
+    { "socketEvent": "SceneItemSelected", "triggerName": "SourceSelected", "category": "OBS", "subCategory": "Items de Escena" },
+    { "socketEvent": "SceneItemListReindexed", "triggerName": "SourceOrderChanged", "category": "OBS", "subCategory": "Items de Escena" },
+
+    { "socketEvent": "SourceFilterCreated", "triggerName": "FilterCreated", "category": "OBS", "subCategory": "Filtros" },
+    { "socketEvent": "SourceFilterRemoved", "triggerName": "FilterRemoved", "category": "OBS", "subCategory": "Filtros" },
+    { "socketEvent": "SourceFilterEnableStateChanged", "triggerName": "FilterStateChanged", "category": "OBS", "subCategory": "Filtros" },
+    { "socketEvent": "SourceFilterNameChanged", "triggerName": "FilterRenamed", "category": "OBS", "subCategory": "Filtros" },
+
+    { "socketEvent": "StreamStateChanged", "triggerName": "StreamStateChanged", "category": "OBS", "subCategory": "Salidas" },
+    { "socketEvent": "RecordStateChanged", "triggerName": "RecordStateChanged", "category": "OBS", "subCategory": "Salidas" },
+    { "socketEvent": "VirtualcamStateChanged", "triggerName": "VirtualCamStateChanged", "category": "OBS", "subCategory": "Salidas" },
+    { "socketEvent": "ReplayBufferStateChanged", "triggerName": "ReplayBufferStateChanged", "category": "OBS", "subCategory": "Salidas" },
+
+    { "socketEvent": "CurrentProfileChanged", "triggerName": "ProfileChanged", "category": "OBS", "subCategory": "Configuración Global" },
+    { "socketEvent": "CurrentSceneCollectionChanged", "triggerName": "SceneCollectionChanged", "category": "OBS", "subCategory": "Configuración Global" }
+]

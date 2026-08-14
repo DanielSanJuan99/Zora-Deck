@@ -5,9 +5,6 @@ const obs = new OBSWebSocket();
 
 /**
  * Función para conectar al servidor de OBS
- * @param {string} ip - Dirección del servidor (ej. 127.0.0.1)
- * @param {string} puerto - Puerto del servidor (ej. 4455)
- * @param {string} password - Contraseña del websocket
  */
 export async function conectarOBS(ip, puerto, password) {
   try {
@@ -28,21 +25,28 @@ export async function conectarOBS(ip, puerto, password) {
  * Función para verificar el estado (necesaria para la persistencia visual)
  */
 export function estaConectado() {
+  // Verificamos si existe el socket y si su estado es OPEN (1)
   return obs.socket && obs.socket.readyState === 1;
 }
 
 /**
+ * NUEVA: Función para obtener la instancia de OBS (Para el Motor de Automatización)
+ * Esto soluciona el error en main.js
+ */
+export function getOBSInstance() {
+  return obs;
+}
+
+/**
  * ESCUCHA DE EVENTOS GLOBALES
- * Útil para detectar desconexiones o cambios en OBS
  */
 obs.on('ConnectionClosed', () => {
-  console.log('⚠️ Conexión perdida con OBS. Reintentando en 5 segundos...');
-  // Opcional: podrías disparar una lógica de reconexión automática aquí
+  console.log('⚠️ Conexión perdida con OBS.');
 });
 
 obs.on('Identified', () => {
   console.log('Servidor OBS identificado y listo para recibir comandos.');
 });
 
-// Exportamos la instancia por defecto para poder usarla en otros archivos
+// Exportamos la instancia por defecto por si otros archivos la usan así
 export default obs;

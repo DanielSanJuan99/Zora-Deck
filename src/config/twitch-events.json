@@ -1,0 +1,32 @@
+[
+    { "socketEvent": "chat_message", "triggerName": "ChatMessage", "category": "Twitch", "subCategory": "Chat y Comunidad" },
+    { "socketEvent": "channel.follow", "triggerName": "NewFollow", "category": "Twitch", "subCategory": "Chat y Comunidad" },
+    { "socketEvent": "channel.raid", "triggerName": "IncomingRaid", "category": "Twitch", "subCategory": "Chat y Comunidad" },
+    { "socketEvent": "channel.update", "triggerName": "CategoryOrTitleChanged", "category": "Twitch", "subCategory": "Chat y Comunidad" },
+
+    { "socketEvent": "channel.subscribe", "triggerName": "NewSub", "category": "Twitch", "subCategory": "Monetización" },
+    { "socketEvent": "channel.subscription.gift", "triggerName": "SubGift", "category": "Twitch", "subCategory": "Monetización" },
+    { "socketEvent": "channel.subscription.message", "triggerName": "ResubMessage", "category": "Twitch", "subCategory": "Monetización" },
+    { "socketEvent": "channel.cheer", "triggerName": "BitsReceived", "category": "Twitch", "subCategory": "Monetización" },
+
+    { "socketEvent": "channel.channel_points_custom_reward_redemption.add", "triggerName": "PointRedemption", "category": "Twitch", "subCategory": "Interacción" },
+    { "socketEvent": "channel.poll.begin", "triggerName": "PollStarted", "category": "Twitch", "subCategory": "Interacción" },
+    { "socketEvent": "channel.poll.end", "triggerName": "PollEnded", "category": "Twitch", "subCategory": "Interacción" },
+    { "socketEvent": "channel.prediction.begin", "triggerName": "PredictionStarted", "category": "Twitch", "subCategory": "Interacción" },
+    { "socketEvent": "channel.prediction.end", "triggerName": "PredictionEnded", "category": "Twitch", "subCategory": "Interacción" },
+
+    { "socketEvent": "channel.hype_train.begin", "triggerName": "HypeTrainStart", "category": "Twitch", "subCategory": "Hype Train" },
+    { "socketEvent": "channel.hype_train.progress", "triggerName": "HypeTrainProgress", "category": "Twitch", "subCategory": "Hype Train" },
+    { "socketEvent": "channel.hype_train.end", "triggerName": "HypeTrainEnd", "category": "Twitch", "subCategory": "Hype Train" },
+
+    { "socketEvent": "channel.ban", "triggerName": "UserBanned", "category": "Twitch", "subCategory": "Moderación" },
+    { "socketEvent": "channel.unban", "triggerName": "UserUnbanned", "category": "Twitch", "subCategory": "Moderación" },
+
+    { "socketEvent": "channel.goal.begin", "triggerName": "GoalStarted", "category": "Twitch", "subCategory": "Objetivos" },
+    { "socketEvent": "channel.goal.progress", "triggerName": "GoalProgress", "category": "Twitch", "subCategory": "Objetivos" },
+    { "socketEvent": "channel.goal.end", "triggerName": "GoalEnded", "category": "Twitch", "subCategory": "Objetivos" },
+
+    { "socketEvent": "channel.ad_break.begin", "triggerName": "AdBreakStarted", "category": "Twitch", "subCategory": "Estado del Stream" },
+    { "socketEvent": "stream.online", "triggerName": "StreamLive", "category": "Twitch", "subCategory": "Estado del Stream" },
+    { "socketEvent": "stream.offline", "triggerName": "StreamOffline", "category": "Twitch", "subCategory": "Estado del Stream" }
+]
