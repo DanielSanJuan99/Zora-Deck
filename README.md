@@ -27,23 +27,25 @@
 
 Zora-Deck sigue la arquitectura estándar de Electron con separación estricta entre procesos:
 
+```text
 ┌─────────────────────────────────────────────────────┐
-│ PROCESO PRINCIPAL (main.js) │
-│ Node.js completo — acceso a filesystem, red, APIs │
-│ │
-│ ┌──────────────┐ ┌─────────────┐ ┌─────────────┐ │
-│ │obs-websocket │ │ twitch-auth │ │ kick-auth │ │
-│ └──────────────┘ └─────────────┘ └─────────────┘ │
+│ PROCESO PRINCIPAL (main.js)                         │
+│ Node.js completo — acceso a filesystem, red, APIs   │
+│                                                     │
+│ ┌──────────────┐ ┌─────────────┐ ┌─────────────┐    │
+│ │obs-websocket │ │ twitch-auth │ │ kick-auth   │    │
+│ └──────────────┘ └─────────────┘ └─────────────┘    │
 └───────────────────────┬─────────────────────────────┘
-│ IPC (ipcMain / ipcRenderer)
-┌──────┴──────┐
-│ preload.js │ ← Puente seguro (contextBridge)
-└──────┬──────┘
+             IPC (ipcMain / ipcRenderer)
+                 ┌──────┴──────┐
+                 │ preload.js  │ ← Puente seguro (contextBridge)
+                 └──────┬──────┘
 ┌───────────────────────┴─────────────────────────────┐
-│ PROCESO RENDERER (renderer.js) │
-│ Entorno browser — sin acceso directo a Node.js │
-│ Hub de Decks → Editor de Grid → Editor de Comandos │
+│ PROCESO RENDERER (renderer.js)                      │
+│ Entorno browser — sin acceso directo a Node.js      │
+│ Hub de Decks → Editor de Grid → Editor de Comandos  │
 └─────────────────────────────────────────────────────┘
+```
 
 La comunicación entre procesos ocurre únicamente a través de `ipcMain`/`ipcRenderer`,
 con `contextBridge` como intermediario (`contextIsolation: true`). Los datos de los
@@ -54,6 +56,7 @@ cada vez que el usuario guarda cambios.
 
 ## 2. Estructura de Archivos
 
+```text
 Zora-Deck/
 ├── src/
 │ ├── main.js # Proceso principal de Electron
@@ -77,6 +80,7 @@ Zora-Deck/
 ├── vite.preload.config.mjs
 ├── vite.renderer.config.mjs
 └── twitch-tokens.json # Tokens OAuth de Twitch (runtime)
+```
 
 ---
 
