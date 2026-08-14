@@ -8,7 +8,6 @@
 
   <body>
 
-    <!-- HEADER / FRAME PERSONALIZADO -->
     <header class="custom-header">
       <div class="drag-region">
         <span class="title">Zora Deck</span>
@@ -21,11 +20,10 @@
       </div>
     </header>
 
-    <!-- MENÚ SUPERIOR -->
     <nav class="menu-bar">
 
       <div class="menu-item-container">
-        <button class="menu-btn">Profile</button>
+        <button class="menu-btn" id="btn-profile">Profile</button>
         <div class="menu-dropdown">
           <button id="menu-settings">Settings</button>
         </div>
@@ -41,13 +39,50 @@
 
     </nav>
 
-    <!-- CONTENEDOR PRINCIPAL -->
-    <!-- AQUÍ se cargan los paneles -->
     <main class="main-content">
-      <!-- VACÍO A PROPÓSITO -->
+      
+      <div id="deck-hub" class="deck-grid">
+        
+        <div class="deck-item" data-deck="1">
+          <div class="deck-content">
+            <div class="deck-icon">🎴</div>
+            <h3>Deck 1</h3>
+            <p>Configurar comandos y macros</p>
+          </div>
+          <div class="deck-footer">Habilitado</div>
+        </div>
+
+        <div class="deck-item" data-deck="2">
+          <div class="deck-content">
+            <div class="deck-icon">🎴</div>
+            <h3>Deck 2</h3>
+            <p>Configurar comandos y macros</p>
+          </div>
+          <div class="deck-footer">Habilitado</div>
+        </div>
+
+        <div class="deck-item" data-deck="3">
+          <div class="deck-content">
+            <div class="deck-icon">🎴</div>
+            <h3>Deck 3</h3>
+            <p>Configurar comandos y macros</p>
+          </div>
+          <div class="deck-footer">Habilitado</div>
+        </div>
+
+        <div class="deck-item" data-deck="4">
+          <div class="deck-content">
+            <div class="deck-icon">🎴</div>
+            <h3>Deck 4</h3>
+            <p>Configurar comandos y macros</p>
+          </div>
+          <div class="deck-footer">Habilitado</div>
+        </div>
+
+      </div>
+
     </main>
 
-    <!-- Renderer -->
     <script type="module" src="/src/renderer.js"></script>
   </body>
 </html>
