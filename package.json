@@ -35,6 +35,7 @@
     "@twurple/auth": "^8.0.2",
     "@twurple/chat": "^8.0.2",
     "@twurple/eventsub-ws": "^8.0.2",
+    "dotenv": "^17.4.2",
     "electron-squirrel-startup": "^1.0.1",
     "obs-websocket-js": "^5.0.7"
   }

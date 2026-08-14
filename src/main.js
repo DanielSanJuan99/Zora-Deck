@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import 'dotenv/config';
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -48,11 +49,11 @@ function loadConfigList(filePath) {
 let obsEvents = loadConfigList(OBS_EVENTS_PATH);
 let twitchEvents = loadConfigList(TWITCH_EVENTS_PATH);
 
-const CLIENT_ID = 'hhoos5qi41xfs6qq7z9pe2159mobzo'; 
-const CLIENT_SECRET = 'x49z49ojed04ipb9q372t8yg5mh8xv';
+const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = 'http://localhost:3000/callback'; 
-const KICK_CLIENT_ID = '01KEAJFG7MPHRNM2Z6H12DZBP4';
-const KICK_CLIENT_SECRET = '2e9356cac4483345c1766beba0f17447142aa930439188c4054c4c8df111c9c1'; 
+const KICK_CLIENT_ID = process.env.KICK_CLIENT_ID;
+const KICK_CLIENT_SECRET = process.env.KICK_CLIENT_SECRET;
 const KICK_REDIRECT_URI = 'http://localhost:3000/kickauth';
 
 if (started) app.quit();

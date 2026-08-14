@@ -93,3 +93,7 @@ out/
 
 #.vscode
 .vscode/
+
+#security
+twitch-tokens.json
+kick-tokens.json
