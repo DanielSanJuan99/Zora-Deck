@@ -10,7 +10,6 @@ contextBridge.exposeInMainWorld('windowAPI', {
   connectOBS: (config) => ipcRenderer.send('obs:connect-request', config),
   checkOBSStatus: () => ipcRenderer.send('obs:status-request'),
   onOBSResponse: (callback) => {
-    ipcRenderer.removeAllListeners('obs:connect-response');
     ipcRenderer.on('obs:connect-response', (event, arg) => callback(arg));
   },
 
@@ -18,7 +17,6 @@ contextBridge.exposeInMainWorld('windowAPI', {
   sendTwitchAuth: () => ipcRenderer.send('twitch:auth-request'),
   getTwitchStatus: () => ipcRenderer.invoke('twitch:get-status'),
   onTwitchResponse: (callback) => {
-    ipcRenderer.removeAllListeners('twitch:auth-response');
     ipcRenderer.on('twitch:auth-response', (event, arg) => callback(arg));
   },
   onTwitchChatMessage: (callback) => {

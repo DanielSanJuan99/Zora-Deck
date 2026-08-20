@@ -58,6 +58,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     initDeckHubLogic();
+    initGlobalStatus();
 });
 /* ============================= */
 /* MENÚ DESPLEGABLE SUPERIOR     */
@@ -748,3 +749,37 @@ document.getElementById('menu-explore')?.addEventListener('click', () => {
 document.getElementById('menu-addons')?.addEventListener('click', () => {
     loadPanel('/src/panels/addons.html');
 });
+
+/* ============================= */
+/* ESTADO GLOBAL (STATUS BAR)    */
+/* ============================= */
+function initGlobalStatus() {
+    const iconObs = document.getElementById('global-status-obs');
+    const iconTwitch = document.getElementById('global-status-twitch');
+    const iconKick = document.getElementById('global-status-kick');
+
+    function updateIcon(element, isConnected, serviceName, details = "") {
+        if (!element) return;
+        if (isConnected) {
+            element.classList.add('connected');
+            element.classList.remove('disconnected');
+            element.title = `${serviceName}: Conectado ${details ? '(' + details + ')' : ''}`;
+        } else {
+            element.classList.remove('connected');
+            element.classList.add('disconnected');
+            element.title = `${serviceName}: Desconectado`;
+        }
+    }
+
+    // Consultar el estado apenas arranca la app
+    window.windowAPI.getTwitchStatus().then(res => updateIcon(iconTwitch, res.success, "Twitch", res.username));
+    window.windowAPI.checkKickStatus().then(res => updateIcon(iconKick, res.success, "Kick"));
+    window.windowAPI.checkOBSStatus();
+
+    // Actualizar automáticamente si se vincula/desvincula desde Ajustes
+    window.windowAPI.onOBSResponse((res) => updateIcon(iconObs, res.success, "OBS"));
+    window.windowAPI.onTwitchResponse((res) => updateIcon(iconTwitch, res.success, "Twitch", res.username));
+    window.windowAPI.onKickSuccess(() => {
+        window.windowAPI.checkKickStatus().then(data => updateIcon(iconKick, data.success, "Kick"));
+    });
+}

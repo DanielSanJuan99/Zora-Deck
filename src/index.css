@@ -965,3 +965,36 @@ html, body, #app {
     font-weight: 600;
     letter-spacing: 1px;
 }
+
+/* ================= BARRA DE ESTADO GLOBAL (INFERIOR DERECHA) ================= */
+
+.global-status-fixed {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  height: 55px; /* Misma altura que tu hub-footer para que quede perfectamente alineado */
+  display: flex;
+  align-items: center;
+  padding-right: 25px;
+  gap: 15px;
+  z-index: 900; /* Se asegura de estar por encima del contenido, pero por debajo de popups */
+  pointer-events: auto;
+}
+
+.status-icon {
+  font-size: 18px; /* Un poco más grandes para que destaquen */
+  cursor: help;
+  transition: all 0.3s ease;
+  filter: grayscale(100%);
+  opacity: 0.3;
+}
+
+.status-icon.connected {
+  filter: none;
+  opacity: 1;
+}
+
+/* Efectos de iluminación que le darán un toque muy profesional */
+#global-status-obs.connected { text-shadow: 0 0 8px #ffffff; }
+#global-status-twitch.connected { text-shadow: 0 0 8px #a970ff; }
+#global-status-kick.connected { text-shadow: 0 0 8px #53fc18; }
