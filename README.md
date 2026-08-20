@@ -440,26 +440,6 @@ Log en tiempo real de qué macros se ejecutaron, cuándo, y con qué resultado.
 
 ## 12. Plan de Mejoras — Seguridad
 
-### Crítico — Resolver Inmediatamente
-
-**Eliminar credenciales hardcodeadas del código fuente**
-En `main.js` están expuestos directamente:
-
-```js
-const CLIENT_ID     = 'hhoos5qi41xfs6qq7z9pe2159mobzo';
-const CLIENT_SECRET = 'x49z49ojed04ipb9q372t8yg5mh8xv';
-const KICK_CLIENT_ID     = '01KEAJFG7MPHRNM2Z6H12DZBP4';
-const KICK_CLIENT_SECRET = '2e9356cac...';
-```
-
-Son visibles para cualquiera que acceda al repositorio o descompile la app.
-Solución: moverlas a `.env` (no versionado) y acceder con `process.env.VAR`.
-Para distribución, usar `safeStorage` de Electron para almacenar en el keychain del SO.
-
-**Añadir `twitch-tokens.json` y `kick-token.json` al `.gitignore`**
-Pueden contener tokens de acceso activos. Nunca deben subirse al repositorio.
-Verificar también que `.env` esté en el `.gitignore`.
-
 ### Alta Prioridad
 
 **Cifrar los tokens almacenados en disco**
