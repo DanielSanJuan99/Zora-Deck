@@ -84,9 +84,27 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
 
   } catch (error) {
     console.error('Error crítico en setupTwitch:', error.message);
+
+    // NUEVO: Manejo específico para caídas de internet
+    const isNetworkError = error.message.includes('fetch failed') || error.code === 'ENOTFOUND' || error.code === 'ECONNRESET';
+    
+    if (isNetworkError) {
+      console.warn('⚠️ Problema de red detectado. No se pudo conectar a Twitch.');
+      
+      // Si la ventana de la interfaz está abierta, le enviamos un aviso
+      if (mainWindow && !mainWindow.isDestroyed()) {
+         mainWindow.webContents.send('twitch-status-update', { status: 'DISCONNECTED', error: 'Sin red' });
+      }
+      
+      // Retornamos un código de error específico para que el Main sepa qué pasó
+      return { success: false, error: 'NETWORK_ERROR' };
+    }
+
+    // Manejo original de tokens inválidos (401)
     if (error.message.includes('401') || error.message.includes('token')) {
       await fs.unlink(TOKEN_PATH).catch(() => {});
     }
+    
     return { success: false, error: error.message };
   }
 }
