@@ -1,6 +1,7 @@
 import { RefreshingAuthProvider } from '@twurple/auth';
 import { ApiClient } from '@twurple/api';
 import { ChatClient } from '@twurple/chat';
+import { safeStorage } from 'electron';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -15,8 +16,7 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
     let tokenData;
     
     try {
-      const data = await fs.readFile(TOKEN_PATH, 'utf-8');
-      tokenData = JSON.parse(data);
+      tokenData = await loadToken();
     } catch (err) {
       console.log('Esperando vinculación manual: No se encontró twitch-tokens.json');
       return { success: false, error: 'NEED_AUTH' };
@@ -26,6 +26,7 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
       authProvider = new RefreshingAuthProvider({
         clientId,
         clientSecret,
+        onRefresh: async (userId, newTokenData) => await saveInitialTokens(newTokenData),
       });
     }
 
@@ -131,9 +132,38 @@ export async function sendTwitchMessage(message) {
     }
 }
 
+// Guardamos el token cifrado
 export async function saveInitialTokens(tokenData) {
   const dataToSave = { ...tokenData, obtainmentTimestamp: Date.now() };
-  await fs.writeFile(TOKEN_PATH, JSON.stringify(dataToSave, null, 4), 'utf-8');
+  const jsonString = JSON.stringify(dataToSave);
+
+  if (safeStorage.isEncryptionAvailable()) {
+    const encryptedBuffer = safeStorage.encryptString(jsonString);
+    await fs.writeFile(TOKEN_PATH, encryptedBuffer);
+  } else {
+    await fs.writeFile(TOKEN_PATH, jsonString, 'utf-8');
+    console.warn('PRECAUCIÓN: Guardado sin cifrar, safeStorage no disponible.');
+  }
+}
+
+// Leemos token cifrado
+async function loadToken() {
+  try {
+    const fileData = await fs.readFile(TOKEN_PATH);
+
+    if (safeStorage.isEncryptionAvailable() && Buffer.isBuffer(fileData)) {
+      try {
+        const decryptedString = safeStorage.decryptString(fileData);
+        return JSON.parse(decryptedString)
+      } catch (decryptError) {
+        return JSON.parse(fileData.toString('utf-8'));
+      }
+    } else {
+      return JSON.parse(fileData.toString('utf-8'));
+    }
+  } catch (error) {
+    throw new Error('NEED_AUTH');
+  }
 }
 
 export { chatClient, apiClient };
