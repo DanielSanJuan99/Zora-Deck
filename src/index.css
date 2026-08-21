@@ -966,35 +966,41 @@ html, body, #app {
     letter-spacing: 1px;
 }
 
-/* ================= BARRA DE ESTADO GLOBAL (INFERIOR DERECHA) ================= */
+/* ================= BARRA DE ESTADO GLOBAL ================= */
 
 .global-status-fixed {
   position: fixed;
   bottom: 0;
   right: 0;
-  height: 55px; /* Misma altura que tu hub-footer para que quede perfectamente alineado */
+  height: 55px;
   display: flex;
   align-items: center;
   padding-right: 25px;
   gap: 15px;
-  z-index: 900; /* Se asegura de estar por encima del contenido, pero por debajo de popups */
+  z-index: 900;
   pointer-events: auto;
 }
 
 .status-icon {
-  font-size: 18px; /* Un poco más grandes para que destaquen */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: help;
+}
+
+.status-icon img {
+  width: 22px;
+  height: 22px;
   transition: all 0.3s ease;
   filter: grayscale(100%);
   opacity: 0.3;
 }
 
-.status-icon.connected {
-  filter: none;
+.status-icon.connected img {
   opacity: 1;
 }
 
 /* Efectos de iluminación que le darán un toque muy profesional */
-#global-status-obs.connected { text-shadow: 0 0 8px #ffffff; }
-#global-status-twitch.connected { text-shadow: 0 0 8px #a970ff; }
-#global-status-kick.connected { text-shadow: 0 0 8px #53fc18; }
+#global-status-obs.connected img { filter: drop-shadow(0 0 5px #ffffff); }
+#global-status-twitch.connected img { filter: drop-shadow(0 0 5px #ffffff); }
+#global-status-kick.connected img { filter: drop-shadow(0 0 5px #ffffff); }
