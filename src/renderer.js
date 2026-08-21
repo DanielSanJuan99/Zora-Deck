@@ -115,6 +115,9 @@ const mainContent = document.querySelector('.main-content');
 let currentViewIndex = 0; 
 
 function initDeckHubLogic() {
+    const statusBar = document.querySelector('.global-status-fixed');
+    if (statusBar) statusBar.classList.remove('hidden');
+
     // 1. Obtener y ordenar decks
     const allKeys = Object.keys(localStorage)
         .filter(k => k.startsWith('deck_storage_'))
@@ -243,6 +246,9 @@ function openDeck(id, defaultName) {
 /* ======================================================= */
 
 function renderDeckTemplate() {
+    const statusBar = document.querySelector('.global-status-fixed');
+    if (statusBar) statusBar.classList.add('hidden');
+
     const { id, name } = currentDeckData;
     
     mainContent.innerHTML = `
