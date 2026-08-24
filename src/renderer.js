@@ -1,31 +1,3 @@
-/**
- * This file will automatically be loaded by vite and run in the "renderer" context.
- * To learn more about the differences between the "main" and the "renderer" context in
- * Electron, visit:
- *
- * https://electronjs.org/docs/tutorial/process-model
- *
- * By default, Node.js integration in this file is disabled. When enabling Node.js integration
- * in a renderer process, please be aware of potential security implications. You can read
- * more about security risks here:
- *
- * https://electronjs.org/docs/tutorial/security
- *
- * To enable Node.js integration in this file, open up `main.js` and enable the `nodeIntegration`
- * flag:
- *
- * ```
- *  // Create the browser window.
- *  mainWindow = new BrowserWindow({
- *    width: 800,
- *    height: 600,
- *    webPreferences: {
- *      nodeIntegration: true
- *    }
- *  });
- * ```
- */
-
 import './index.css';
 import { authenticateKick } from './kick-auth.js';
 // Estado global para manejar el Deck actual
@@ -50,11 +22,9 @@ window.addEventListener('DOMContentLoaded', () => {
     // Bloque de sincronización corregido
     if (window.windowAPI && window.windowAPI.onRequestSync) {
         window.windowAPI.onRequestSync(() => {
-            console.log("📥 Main solicitó sincronización. Enviando botones actuales...");
-            // Si hay un deck cargado, lo enviamos. Si no, enviamos objeto vacío.
-            const buttonsToSync = currentDeckData?.buttons || {};
-            window.windowAPI.updateButtonsLogic(buttonsToSync);
-        }); // <-- Aquí faltaba cerrar esta llave y el paréntesis
+            console.log("Main solicitó sincronización. Enviando botones actuales...");
+            syncAllDecksToMain();
+        });
     }
 
     initDeckHubLogic();
@@ -241,9 +211,9 @@ function openDeck(id, defaultName) {
     renderDeckTemplate();
 }
 
-/* ======================================================= */
+/* ======================================================== */
 /* EDITOR DE GRID INTERACTIVO (SAMMI STYLE) - VERSIÓN FINAL */
-/* ======================================================= */
+/* ======================================================== */
 
 function renderDeckTemplate() {
     const statusBar = document.querySelector('.global-status-fixed');
@@ -285,9 +255,9 @@ function renderDeckTemplate() {
 
     document.getElementById('btn-save-grid').onclick = (e) => {
         localStorage.setItem(`deck_storage_${currentDeckData.id}`, JSON.stringify(currentDeckData));
-        if (window.windowAPI?.updateButtonsLogic) {
-            window.windowAPI.updateButtonsLogic(currentDeckData.buttons);
-        }
+        
+        syncAllDecksToMain();
+
         const btn = e.currentTarget;
         btn.classList.add('saved-success');
         btn.innerText = "¡Guardado!";
@@ -788,4 +758,23 @@ function initGlobalStatus() {
     window.windowAPI.onKickSuccess(() => {
         window.windowAPI.checkKickStatus().then(data => updateIcon(iconKick, data.success, "Kick"));
     });
+}
+
+function syncAllDecksToMain() {
+    let allButtons = {};
+    // Buscamos todos los decks guardados
+    const allKeys = Object.keys(localStorage).filter(k => k.startsWith('deck_storage_'));
+
+    allKeys.forEach(key => {
+        const data = JSON.parse(localStorage.getItem(key));
+        if (data && data.buttons) {
+            // Juntamos todos los botones en un solo objeto masivo
+            Object.assign(allButtons, data.buttons);
+        }
+    });
+
+    // Enviamos el arsenal completo al Main
+    if (window.windowAPI && window.windowAPI.updateButtonsLogic) {
+        window.windowAPI.updateButtonsLogic(allButtons);
+    }
 }

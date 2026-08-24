@@ -20,8 +20,8 @@ const TWITCH_EVENTS_PATH = path.join(CONFIG_FOLDER, 'twitch-events.json');
 const KICK_TOKEN_PATH = path.join(CONFIG_FOLDER, 'kick-token.json');
 
 console.log("-----------------------------------------");
-console.log("📂 MODO DESARROLLO:", isDev);
-console.log("📂 RUTA DE CONFIGURACIÓN:", CONFIG_FOLDER);
+console.log("MODO DESARROLLO:", isDev);
+console.log("RUTA DE CONFIGURACIÓN:", CONFIG_FOLDER);
 console.log("-----------------------------------------");
 
 if (!fs.existsSync(CONFIG_FOLDER)) {
@@ -33,14 +33,14 @@ function loadConfigList(filePath) {
         if (fs.existsSync(filePath)) {
             const data = fs.readFileSync(filePath, 'utf8');
             const parsed = JSON.parse(data);
-            console.log(`📖 Cargado con éxito: ${path.basename(filePath)} (${parsed.length} elementos)`);
+            console.log(`Cargado con éxito: ${path.basename(filePath)} (${parsed.length} elementos)`);
             return parsed;
         } else {
-            console.warn(`⚠️ Archivo no encontrado: ${filePath}. Creando vacío.`);
+            console.warn(`Archivo no encontrado: ${filePath}. Creando vacío.`);
             fs.writeFileSync(filePath, JSON.stringify([], null, 4));
         }
     } catch (e) {
-        console.error(`❌ Error crítico cargando ${filePath}:`, e.message);
+        console.error(`Error crítico cargando ${filePath}:`, e.message);
     }
     return [];
 }
@@ -91,11 +91,11 @@ const createWindow = () => {
 
 ipcMain.on('update-buttons-logic', (event, buttons) => {
     currentButtonsData = Object.values(buttons);
-    console.log("🛠️ LÓGICA SINCRONIZADA: Botones activos:", currentButtonsData.length);
+    console.log("LÓGICA SINCRONIZADA: Botones activos:", currentButtonsData.length);
 });
 
 ipcMain.on('test-commands-execution', (event, commands) => {
-    console.log("🧪 EJECUCIÓN MANUAL INICIADA");
+    console.log("EJECUCIÓN MANUAL INICIADA");
     executeMacro(commands);
 });
 
@@ -135,28 +135,57 @@ async function executeMacro(commands) {
 }
 
 async function triggerAutomation(platform, eventName, eventData) {
-    console.log(`📡 EVENTO: [${platform.toUpperCase()}] -> ${eventName}`);
-    
-    if (currentButtonsData.length === 0) return;
+  console.log(`EVENTO: [${platform.toUpperCase()}] -> ${eventName}`);
+  
+  if (currentButtonsData.length === 0) return;
 
-    currentButtonsData.forEach(async (button) => {
-        if (!button.commands) return;
+  currentButtonsData.forEach(async (button) => {
+    if (!button.commands) return;
 
-        const commandsToExecute = button.commands.filter(cmd => {
-            const matchService = (cmd.trigger?.service === platform);
-            const matchEvent = (cmd.trigger?.event === eventName);
-            
-            if (matchService && matchEvent && platform === 'obs' && cmd.trigger.condition?.inputKind) {
-                return eventData.inputKind === cmd.trigger.condition.inputKind;
-            }
-            return matchService && matchEvent;
-        });
+    const commandsToExecute = button.commands.filter(cmd => {
+      const matchService = (cmd.trigger?.service === platform);
+      const matchEvent = (cmd.trigger?.event === eventName);
+      
+      if (!matchService || !matchEvent) return false;
 
-        if (commandsToExecute.length > 0) {
-            console.log(`🎯 Ejecutando botón: "${button.label}"`);
-            executeMacro(button.commands);
+      // --- SISTEMA DE CONDICIONES ---
+      if (cmd.trigger.condition) {
+        // Condiciones OBS
+        if (platform === 'obs' && cmd.trigger.condition.inputKind) {
+          return eventData.inputKind === cmd.trigger.condition.inputKind;
         }
+
+        // Condiciones Twitch
+        if (platform === 'twitch') {
+          // Condición por comando (ej: !tts)
+          if (eventName === 'ChatMessage' && cmd.trigger.condition.message) {
+            return eventData.message.trim().toLowerCase() === cmd.trigger.condition.message.toLowerCase();
+          }
+
+          // Condición por nombre de recompensa (ej: "hidratación")
+          if (eventName === 'ChannelPointsRedeemed' && cmd.trigger.condition.rewardTitle) {
+            return eventData.reward.toLowerCase() === cmd.trigger.condition.rewardTitle.toLowerCase();
+          }
+        }
+
+        // Si la macro tiene alguna condición configurada PERO el evento no cumple, no pasa nada
+        return false;
+      }
+
+      // Si no tiene condiciones, se ejecuta SIEMPRE Y CUANDO coincda servicio/evento
+      return true;
+
+      // if (matchService && matchEvent && platform === 'obs' && cmd.trigger.condition?.inputKind) {
+      //     return eventData.inputKind === cmd.trigger.condition.inputKind;
+      // }
+      // return matchService && matchEvent;
     });
+
+    if (commandsToExecute.length > 0) {
+        console.log(`Ejecutando botón: "${button.label}"`);
+        executeMacro(button.commands);
+    }
+  });
 }
 
 /* ========================================= */
@@ -169,7 +198,7 @@ ipcMain.on('obs:connect-request', async (event, config) => {
   if (resultado.success) {
       const obs = getOBSInstance();
       obsEvents = loadConfigList(OBS_EVENTS_PATH);
-      console.log(`✅ OBS Conectado. Escuchando ${obsEvents.length} eventos.`);
+      console.log(`OBS Conectado. Escuchando ${obsEvents.length} eventos.`);
 
       obsEvents.forEach(item => {
           obs.on(item.socketEvent, (data) => {
@@ -241,7 +270,7 @@ ipcMain.on('kick:auth-request', async (event) => {
             const returnedState = urlObj.searchParams.get('state');
             if (code && returnedState === state) {
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end('<h2>✅ ¡Autorización exitosa!</h2><p>Vuelve a la aplicación.</p>');
+                res.end('<h2>¡Autorización exitosa!</h2><p>Vuelve a la aplicación.</p>');
                 mainWindow.webContents.send('kick:auth-success', { code, codeVerifier });
                 tempKickServer.close();
                 tempKickServer = null;
@@ -287,7 +316,7 @@ ipcMain.on('twitch:auth-request', async (event) => {
     width: 500, height: 700, parent: mainWindow, modal: true, show: false, autoHideMenuBar: true,
     webPreferences: { nodeIntegration: false }
   });
-  const scopes = encodeURIComponent('chat:read chat:edit');
+  const scopes = encodeURIComponent('chat:read chat:edit channel:read:redemptions channel:read:subscriptions moderator:read:followers');
   const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scopes}`;
   authWindow.loadURL(authUrl);
   authWindow.once('ready-to-show', () => authWindow.show());

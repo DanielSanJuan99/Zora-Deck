@@ -1,6 +1,7 @@
 import { RefreshingAuthProvider } from '@twurple/auth';
 import { ApiClient } from '@twurple/api';
 import { ChatClient } from '@twurple/chat';
+import { EventSubWsListener } from '@twurple/eventsub-ws';
 import { safeStorage } from 'electron';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -41,6 +42,20 @@ export async function setupTwitch(clientId, clientSecret, mainWindow, triggerAut
     if (!apiClient) {
       apiClient = new ApiClient({ authProvider });
     }
+
+    const listener = new EventSubWsListener({ apiClient });
+    listener.start();
+    console.log("EventSub Lisener inicializado para eventos de canal");
+
+    listener.onChannelRedemptionAdd(userId, (e) => {
+      console.log(`Recompensa canjeada : ${e.rewardTitle}`);
+      if (triggerAutomation) {
+        triggerAutomation('twitch', 'ChannelPointsRedeemd', {
+          user: e.userName,
+          reward: e.rewardTitle
+        });
+      }
+    });
 
     let user = null;
     try {
