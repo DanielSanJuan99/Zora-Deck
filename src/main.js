@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import http from 'node:http';
 import started from 'electron-squirrel-startup';
-import { conectarOBS, estaConectado, getOBSInstance } from './obs-websocket.js';
+import { conectarOBS, estaConectado, getOBSInstance, setOBSStatusCallback } from './obs-websocket.js';
 import { setupTwitch, saveInitialTokens, sendTwitchMessage } from './twitch-auth.js'; 
 
 // --- CONFIGURACIÓN DE RUTAS DINÁMICAS (CORRECCIÓN VITE) ---
@@ -351,6 +351,13 @@ ipcMain.on('obs:status-request', (event) => {
 
 app.whenReady().then(async () => {
   createWindow();
+
+  // Se escucha la caída y reconexión de OBS para actualizar ícono
+  setOBSStatusCallback ((isConnected) => {
+    if (mainWindow &&!mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('obs:connect-response', { success: isConnected });
+    }
+  });
 
   mainWindow.webContents.on('did-finish-load', () => {
       console.log("Ventana lista. Sincronizando lógica...");

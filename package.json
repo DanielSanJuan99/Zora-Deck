@@ -31,10 +31,10 @@
     "vite": "^5.4.21"
   },
   "dependencies": {
-    "@twurple/api": "^8.0.2",
-    "@twurple/auth": "^8.0.2",
-    "@twurple/chat": "^8.0.2",
-    "@twurple/eventsub-ws": "^8.0.2",
+    "@twurple/api": "^8.1.4",
+    "@twurple/auth": "^8.1.4",
+    "@twurple/chat": "^8.1.4",
+    "@twurple/eventsub-ws": "^8.1.4",
     "dotenv": "^17.4.2",
     "electron-squirrel-startup": "^1.0.1",
     "obs-websocket-js": "^5.0.7"
