@@ -99,28 +99,37 @@ ipcMain.on('test-commands-execution', (event, commands) => {
     executeMacro(commands);
 });
 
+const delayMs = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function executeMacro(commands) {
     if (!commands || !Array.isArray(commands)) return;
 
     for (const cmd of commands) {
         const action = cmd.action || cmd; 
         try {
-            if (action.service === 'twitch') {
-                console.log("📤 Macro Twitch:", action.message);
-                await sendTwitchMessage(action.message);
-            } 
-            
-            if (action.service === 'obs') {
-                const obs = getOBSInstance();
-                if (obs && estaConectado()) {
-                    console.log("🎬 Macro OBS:", action.command);
-                    await obs.call(action.command, action.args || {});
-                } else {
-                    console.log("⚠️ OBS no conectado.");
-                }
-            }
+          if (action.service === 'system' && action.command === 'delay') {
+              const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
+              console.log(`Esperando ${ms}ms...`);
+              await delayMs(ms);
+              continue;
+          }
+
+          if (action.service === 'twitch') {
+              console.log("Macro Twitch:", action.message);
+              await sendTwitchMessage(action.message);
+          } 
+          
+          if (action.service === 'obs') {
+              const obs = getOBSInstance();
+              if (obs && estaConectado()) {
+                  console.log("Macro OBS:", action.command);
+                  await obs.call(action.command, action.args || {});
+              } else {
+                  console.log("OBS no conectado.");
+              }
+          }
         } catch (error) {
-            console.error("❌ Error en macro:", error.message);
+            console.error("Error en macro:", error.message);
         }
     }
 }
