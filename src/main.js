@@ -259,7 +259,7 @@ ipcMain.on('kick:auth-request', async (event) => {
 ipcMain.handle('twitch:get-status', async () => {
   if (isTwitchConnected) return { success: true, username: cachedUsername || "Conectado" };
   try {
-    const result = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow);
+    const result = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow, triggerAutomation);
     if (result.success) {
       isTwitchConnected = true;
       cachedUsername = result.username;
@@ -302,7 +302,7 @@ ipcMain.on('twitch:auth-request', async (event) => {
           if (tokenData.access_token) {
             await saveInitialTokens(tokenData);
             setTimeout(async () => {
-              const finalResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow);
+              const finalResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow, triggerAutomation);
               if (finalResult.success) { isTwitchConnected = true; cachedUsername = finalResult.username; }
               event.reply('twitch:auth-response', finalResult);
             }, 500);
@@ -344,12 +344,12 @@ app.whenReady().then(async () => {
   createWindow();
 
   mainWindow.webContents.on('did-finish-load', () => {
-      console.log("🖥️ Ventana lista. Sincronizando lógica...");
+      console.log("Ventana lista. Sincronizando lógica...");
       mainWindow.webContents.send('request-buttons-sync');
   });
 
   try {
-    const initResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, null);
+    const initResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow, triggerAutomation);
     if (initResult.success) {
       isTwitchConnected = true;
       cachedUsername = initResult.username;

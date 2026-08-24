@@ -11,7 +11,7 @@ let authProvider;
 let apiClient;
 let chatClient;
 
-export async function setupTwitch(clientId, clientSecret, mainWindow) {
+export async function setupTwitch(clientId, clientSecret, mainWindow, triggerAutomation) {
   try {
     let tokenData;
     
@@ -74,8 +74,9 @@ export async function setupTwitch(clientId, clientSecret, mainWindow) {
         mainWindow.webContents.send('twitch-chat-message', { user: userMsg, message });
       }
       
-      // AQUÍ SE DISPARARÁ LA AUTOMATIZACIÓN EN EL FUTURO
-      // Puedes importar triggerAutomation aquí o manejarlo desde el main
+      if (triggerAutomation) {
+          triggerAutomation('twitch', 'ChatMessage', { user: userMsg, message: message });
+      }
     });
 
     await chatClient.connect();
