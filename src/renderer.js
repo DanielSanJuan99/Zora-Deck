@@ -29,6 +29,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
     initDeckHubLogic();
     initGlobalStatus();
+
+    const savedObsConfig = localStorage.getItem('obs-config');
+    if (savedObsConfig) {
+        try {
+            const config = JSON.parse(savedObsConfig);
+            console.log('Intentando auto-conexión a OBS...');
+            window.windowAPI.connectOBS(config);
+        } catch (e) {
+            console.log('Error leyendo config de OBS', e);
+        }
+    }
 });
 /* ============================= */
 /* MENÚ DESPLEGABLE SUPERIOR     */
@@ -570,6 +581,7 @@ window.insertCommand = (eventName, service) => {
         textarea.dispatchEvent(new Event('input'));
     } catch (e) { alert("Arregla el JSON antes de añadir más."); }
 };
+
 /* ============================= */
 /* LÓGICA DE SETTINGS            */
 /* ============================= */
@@ -596,6 +608,21 @@ function initSettingsLogic() {
             });
         };
     });
+
+    // Rellenar campos visuales de OBS si existen datos
+    const savedObsConfig = localStorage.getItem('obs-config');
+    if (savedObsConfig) {
+        try {
+            const config = JSON.parse(savedObsConfig);
+            const ipInput = document.getElementById('obs-ip');
+            const portInput = document.getElementById('obs-port');
+            const passInput = document.getElementById('obs-password');
+
+            if (ipInput) ipInput.value = config.ip || '';
+            if (portInput) portInput.value = config.port || '';
+            if (passInput) passInput.value = config.password || '';
+        } catch (e) {}
+    }
 
     // 2. --- ESTADO INICIAL ---
     window.windowAPI.checkOBSStatus();
