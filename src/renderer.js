@@ -445,7 +445,16 @@ async function renderCommandEditor(slotId) {
     const searchInput = document.getElementById('event-search');
 
     const availableEvents = await window.windowAPI.getAvailableEvents();
+
+    // Plantilla exclusiva de Zora Deck
+    const systemEvents = [
+        { triggerName: "Pausa (Delay)", service: "zora deck", subCategory: "Control de Tiempo" },
+        { triggerName: "Condicional (If-Else)", service: "zora deck", subCategory: "Estructuras" },
+        { triggerName: "Bucle (Repetir)", service: "zora deck", subCategory: "Estructuras" }
+    ];
+
     const allEvents = [
+        ...systemEvents,
         ...(availableEvents.obs || []).map(e => ({ ...e, service: 'obs' })),
         ...(availableEvents.twitch || []).map(e => ({ ...e, service: 'twitch' }))
     ];
@@ -570,16 +579,61 @@ async function renderCommandEditor(slotId) {
 window.insertCommand = (eventName, service) => {
     const textarea = document.getElementById('code-editor');
     if (!textarea) return;
-    const newCmd = {
-        trigger: { service, event: eventName },
-        action: { service, message: `Ejecutando ${eventName}` }
-    };
+    
+    let newCmd = {};
+
+    // 1. PLANTILLAS DE ZORA DECK (Verificamos por nombre exacto para evitar conflictos de servicio)
+    if (eventName === 'Pausa (Delay)') {
+        newCmd = { action: { service: "system", command: "delay", args: { ms: 1000 } } };
+    } else if (eventName === 'Condicional (If-Else)') {
+        newCmd = {
+            type: "if",
+            condition: { variable: "nombreUsuario", operator: "==", value: "VIP_User" },
+            then: [ { action: { service: "twitch", message: "¡Hola VIP!" } } ],
+            else: [ { action: { service: "twitch", message: "Hola espectador normal" } } ]
+        };
+    } else if (eventName === 'Bucle (Repetir)') {
+        newCmd = {
+            type: "loop",
+            iterations: 3,
+            commands: [ { action: { service: "system", command: "delay", args: { ms: 500 } } } ]
+        };
+    } 
+    // 2. PLANTILLAS INTELIGENTES DE TWITCH
+    else if (service === 'twitch') {
+        newCmd = {
+            trigger: { service: "twitch", event: eventName },
+            action: { service: "obs", command: "SetCurrentProgramScene", args: { sceneName: "TuEscena" } }
+        };
+        
+        if (eventName === 'ChatMessage') {
+            newCmd.trigger.condition = { message: "!comando" };
+        } else if (eventName === 'ChannelPointsRedeemed') {
+            newCmd.trigger.condition = { rewardTitle: "Nombre de Recompensa" };
+        } else if (eventName === 'NewSub') {
+             newCmd.trigger.condition = { tier: "1000" };
+        }
+    } 
+    // 3. PLANTILLAS ESTÁNDAR DE OBS
+    else if (service === 'obs') {
+        newCmd = {
+            trigger: { service: "obs", event: eventName },
+            action: { service: "twitch", message: `Evento ${eventName} detectado en OBS` }
+        };
+    }
+
+    // CANDADO DE SEGURIDAD: Si no se armó ningún comando, salimos de la función
+    if (Object.keys(newCmd).length === 0) return;
+
+    // Inserción segura en el editor JSON
     try {
         let json = JSON.parse(textarea.value.trim() || "[]");
         json.push(newCmd);
         textarea.value = JSON.stringify(json, null, 4);
         textarea.dispatchEvent(new Event('input'));
-    } catch (e) { alert("Arregla el JSON antes de añadir más."); }
+    } catch (e) {
+        alert("El JSON actual tiene errores de sintaxis. Cierra las llaves y corchetes correctamente antes de añadir una nueva plantilla.");
+    }
 };
 
 /* ============================= */
