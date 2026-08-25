@@ -50,6 +50,10 @@ contextBridge.exposeInMainWorld('windowAPI', {
     ipcRenderer.on('request-buttons-sync', () => callback());
   },
 
-  // --- NUEVO: Obtener eventos para el panel de ayuda del editor ---
-  getAvailableEvents: () => ipcRenderer.invoke('get-available-events')
+  // Obtener eventos para el panel de ayuda del editor
+  getAvailableEvents: () => ipcRenderer.invoke('get-available-events'),
+
+  onPlayAudio: (callback) => {
+    ipcRenderer.on('system:play-audio', (event, filepath) => callback(filepath));
+  }
 });

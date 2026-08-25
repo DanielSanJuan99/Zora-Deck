@@ -30,6 +30,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initDeckHubLogic();
     initGlobalStatus();
 
+    // Guardado configuración OBS en memoria local
     const savedObsConfig = localStorage.getItem('obs-config');
     if (savedObsConfig) {
         try {
@@ -39,6 +40,21 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.log('Error leyendo config de OBS', e);
         }
+    }
+
+    // Motor de Audio local
+    if (window.windowAPI && window.windowAPI.onPlayAudio) {
+        window.windowAPI.onPlayAudio((filepath) => {
+            try {
+                // Lee la ruta del archivo
+                const cleanPath = filepath.replace(/\\/g, '/');
+                const audio = new Audio(`file:///${cleanPath}`);
+                audio.volume = 0.4; // Volumen en 40% por defecto
+                audio.play();
+            } catch (e) {
+                console.error('Error reproduciendo audio: ', e);
+            }
+        })
     }
 });
 /* ============================= */

@@ -74,7 +74,8 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, 
       nodeIntegration: false, 
-      sandbox: false
+      sandbox: false,
+      webSecurity: false,
     },
   });
 
@@ -168,11 +169,25 @@ async function executeMacro(commands, context = {}) {
           // 2.- COMANDOS ESTANDAR
           const action = cmd.action || cmd;
 
+          // Delay
           if (action.service === 'system' && action.command === 'delay') {
               const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
               console.log(`Esperando ${ms}ms...`);
               await delayMs(ms);
               continue;
+          }
+
+          // Play Audio
+          if (action.service === 'system' && action.command === 'playSound') {
+            const filepath = action.args?.path;
+            if (filepath && mainWindow && !mainWindow.isDestroyed()) {
+              console.log(`Reproduciendo audio: ${filepath}`)
+              // Sonido se reproduce en ventana del programa
+              mainWindow.webContents.send('system:play-audio', filepath);
+            } else {
+              console.log('Error: No se especificó la ruta del audio');
+            }
+            continue;
           }
 
           if (action.service === 'twitch') {
