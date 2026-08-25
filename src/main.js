@@ -101,12 +101,73 @@ ipcMain.on('test-commands-execution', (event, commands) => {
 
 const delayMs = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function executeMacro(commands) {
+// Evaluador de condiciones lógicas
+function evaluateCondition(cond) {
+    if (!cond) return false;
+    
+    // Aquí a futuro podremos inyectar variables en tiempo real (ej. el nombre de quien canjeó un punto)
+    // Por ahora, compararemos los valores estáticos que se escriba en el JSON
+    const left = cond.variable; 
+    const right = cond.value;
+    
+    switch (cond.operator) {
+        case '==': return left == right;
+        case '!=': return left != right;
+        case '>': return left > right;
+        case '<': return left < right;
+        default: return false;
+    }
+}
+
+// Injector de variables dinámicas
+function applyContext(cmd, context) {
+  if (!context || Object.keys(context).length === 0) return cmd;
+
+  let cmdStr = JSON.stringify(cmd);
+
+  cmdStr = cmdStr.replace(/\$\{([^}]+)\}/g, (match, varName) => {
+    return context[varName] !== undefined ? context[varName] : match;
+  });
+
+  return JSON.parse(cmdStr);
+}
+
+async function executeMacro(commands, context = {}) {
     if (!commands || !Array.isArray(commands)) return;
 
-    for (const cmd of commands) {
-        const action = cmd.action || cmd; 
+    for (const rawCmd of commands) {
         try {
+          const cmd = applyContext(rawCmd, context);
+
+          // 1.- ESTRUCTURA DE CONTROL (Zora Deck)
+          // Bucle (Loop)
+          if (cmd.type === 'loop') {
+            const iters = cmd.iterations || 1;
+            console.log(`Iniciando bucle de ${iters} iteraciones...`);
+            for (let i = 1; i <= iters; i++) {
+              await executeMacro(cmd.commands, { ...context, i: i });
+            }
+            continue;
+          }
+
+          // Conicional (if-else)
+          if (cmd.type === 'if') {
+            console.log('Evaluando condición');
+            const isTrue = evaluateCondition(cmd.condition);
+            
+            if (isTrue && cmd.then) {
+              console.log('Condición cumplida, ejecutando THEN');
+              await executeMacro(cmd.then, context);
+            } else if (!isTrue && cmd.else) {
+              console.log('Condición no cumplida, ejecutando ELSE');
+              await executeMacro(cmd.else, context);
+            }
+            continue;
+          }
+
+          // 2.- COMANDOS ESTANDAR
+          const action = cmd.action || cmd;
+
           if (action.service === 'system' && action.command === 'delay') {
               const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
               console.log(`Esperando ${ms}ms...`);
