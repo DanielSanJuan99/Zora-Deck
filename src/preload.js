@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('windowAPI', {
   // Ejecuta la prueba manual (Botón "PROBAR")
   testCommands: (commands) => ipcRenderer.send('test-commands-execution', commands),
 
+  // Detiene la ejecución en curso
+  stopCommands: () => ipcRenderer.send('stop-macro-execution'),
+
   // Escucha cuando el Main solicita los botones (al arrancar la app)
   onRequestSync: (callback) => {
     // Es importante usar removeAllListeners antes de registrar uno nuevo

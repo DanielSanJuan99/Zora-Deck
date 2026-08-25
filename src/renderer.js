@@ -260,6 +260,7 @@ function renderDeckTemplate() {
                 <div class="header-actions">
                     <button class="back-btn" id="btn-back-hub">⬅ Volver</button>
                     <button class="save-btn" id="btn-save-grid">Guardar Cambios</button>
+                    <button class="backup-btn" id="btn-export-deck">Exportar JSON</button>
                 </div>
             </div>
 
@@ -295,6 +296,15 @@ function renderDeckTemplate() {
     };
 
     document.getElementById('btn-back-hub').onclick = initDeckHubLogic;
+
+    // Botón para exportar JSON
+    document.getElementById('btn-export-deck').onclick = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentDeckData, null, 4));
+        const anchor = document.createElement('a');
+        anchor.setAttribute("href", dataStr);
+        anchor.setAttribute("download", `ZoraDeck_${currentDeckData.name || 'Respaldo'}.json`);
+        anchor.click();
+    };
 }
 
 function renderAllButtons() {
@@ -431,6 +441,8 @@ async function renderCommandEditor(slotId) {
                 </div>
                 <div class="editor-header-btns">
                      <button class="btn-test" id="btn-test-cmd">▶ PROBAR</button>
+                     <button class="btn-stop" id="btn-stop-cmd">⏹ DETENER</button>
+                     <button class="btn-cancel" id="btn-cancel-cmd" style="background: #e74c3c;">Salir</button>
                      <button class="btn-save" id="btn-save-cmd">Guardar y Salir</button>
                 </div>
             </div>
@@ -589,6 +601,19 @@ async function renderCommandEditor(slotId) {
             btnData.label = document.getElementById('edit-btn-label').value;
             renderDeckTemplate();
         } catch (e) { document.getElementById('json-error-hint').innerText = "⚠️ JSON Inválido"; }
+    };
+
+    document.getElementById('btn-cancel-cmd').onclick = () => {
+        renderDeckTemplate();
+    };
+
+    document.getElementById('btn-stop-cmd').onclick = () => {
+        if (window.windowAPI && window.windowAPI.stopCommands) {
+            window.windowAPI.stopCommands();
+            const btn = document.getElementById('btn-stop-cmd');
+            btn.innerText = "¡DETENIDO!";
+            setTimeout(() => btn.innerText = "⏹ DETENER", 1500);
+        }
     };
 }
 

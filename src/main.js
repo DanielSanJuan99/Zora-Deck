@@ -63,6 +63,7 @@ let isTwitchConnected = false;
 let cachedUsername = "";
 let tempKickServer = null; 
 let currentButtonsData = []; 
+let abortMacroFlag = false;
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -97,10 +98,22 @@ ipcMain.on('update-buttons-logic', (event, buttons) => {
 
 ipcMain.on('test-commands-execution', (event, commands) => {
     console.log("EJECUCIÓN MANUAL INICIADA");
+    abortMacroFlag = false;
     executeMacro(commands);
 });
 
-const delayMs = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+ipcMain.on('stop-macro-execution', () => {
+  console.log('ABORTANO MACRO');
+  abortMacroFlag = true;
+});
+
+const delayMs = async (ms) => {
+  const start = Date.now();
+  while (Date.now() - start < ms) {
+    if (abortMacroFlag) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+};
 
 // Evaluador de condiciones lógicas
 function evaluateCondition(cond) {
@@ -137,80 +150,87 @@ async function executeMacro(commands, context = {}) {
     if (!commands || !Array.isArray(commands)) return;
 
     for (const rawCmd of commands) {
-        try {
-          const cmd = applyContext(rawCmd, context);
 
-          // 1.- ESTRUCTURA DE CONTROL (Zora Deck)
-          // Bucle (Loop)
-          if (cmd.type === 'loop') {
-            const iters = cmd.iterations || 1;
-            console.log(`Iniciando bucle de ${iters} iteraciones...`);
-            for (let i = 1; i <= iters; i++) {
-              await executeMacro(cmd.commands, { ...context, i: i });
-            }
-            continue;
+      if (abortMacroFlag) {
+          console.log("Ejecución detenida.");
+          return;
+      }
+      
+      try {
+        const cmd = applyContext(rawCmd, context);
+
+        // 1.- ESTRUCTURA DE CONTROL (Zora Deck)
+        // Bucle (Loop)
+        if (cmd.type === 'loop') {
+          const iters = cmd.iterations || 1;
+          console.log(`Iniciando bucle de ${iters} iteraciones...`);
+          for (let i = 1; i <= iters; i++) {
+            await executeMacro(cmd.commands, { ...context, i: i });
           }
-
-          // Conicional (if-else)
-          if (cmd.type === 'if') {
-            console.log('Evaluando condición');
-            const isTrue = evaluateCondition(cmd.condition);
-            
-            if (isTrue && cmd.then) {
-              console.log('Condición cumplida, ejecutando THEN');
-              await executeMacro(cmd.then, context);
-            } else if (!isTrue && cmd.else) {
-              console.log('Condición no cumplida, ejecutando ELSE');
-              await executeMacro(cmd.else, context);
-            }
-            continue;
-          }
-
-          // 2.- COMANDOS ESTANDAR
-          const action = cmd.action || cmd;
-
-          // Delay
-          if (action.service === 'system' && action.command === 'delay') {
-              const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
-              console.log(`Esperando ${ms}ms...`);
-              await delayMs(ms);
-              continue;
-          }
-
-          // Play Audio
-          if (action.service === 'system' && action.command === 'playSound') {
-            const filepath = action.args?.path;
-            if (filepath && mainWindow && !mainWindow.isDestroyed()) {
-              console.log(`Reproduciendo audio: ${filepath}`)
-              // Sonido se reproduce en ventana del programa
-              mainWindow.webContents.send('system:play-audio', filepath);
-            } else {
-              console.log('Error: No se especificó la ruta del audio');
-            }
-            continue;
-          }
-
-          if (action.service === 'twitch') {
-              console.log("Macro Twitch:", action.message);
-              await sendTwitchMessage(action.message);
-          } 
-          
-          if (action.service === 'obs') {
-              const obs = getOBSInstance();
-              if (obs && estaConectado()) {
-                  console.log("Macro OBS:", action.command);
-                  await obs.call(action.command, action.args || {});
-              } else {
-                  console.log("OBS no conectado.");
-              }
-          }
-        } catch (error) {
-            console.error("Error en macro:", error.message);
+          continue;
         }
+
+        // Conicional (if-else)
+        if (cmd.type === 'if') {
+          console.log('Evaluando condición');
+          const isTrue = evaluateCondition(cmd.condition);
+          
+          if (isTrue && cmd.then) {
+            console.log('Condición cumplida, ejecutando THEN');
+            await executeMacro(cmd.then, context);
+          } else if (!isTrue && cmd.else) {
+            console.log('Condición no cumplida, ejecutando ELSE');
+            await executeMacro(cmd.else, context);
+          }
+          continue;
+        }
+
+        // 2.- COMANDOS ESTANDAR
+        const action = cmd.action || cmd;
+
+        // Delay
+        if (action.service === 'system' && action.command === 'delay') {
+            const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
+            console.log(`Esperando ${ms}ms...`);
+            await delayMs(ms);
+            continue;
+        }
+
+        // Play Audio
+        if (action.service === 'system' && action.command === 'playSound') {
+          const filepath = action.args?.path;
+          if (filepath && mainWindow && !mainWindow.isDestroyed()) {
+            console.log(`Reproduciendo audio: ${filepath}`)
+            // Sonido se reproduce en ventana del programa
+            mainWindow.webContents.send('system:play-audio', filepath);
+          } else {
+            console.log('Error: No se especificó la ruta del audio');
+          }
+          continue;
+        }
+
+        if (action.service === 'twitch') {
+            console.log("Macro Twitch:", action.message);
+            await sendTwitchMessage(action.message);
+        } 
+        
+        if (action.service === 'obs') {
+            const obs = getOBSInstance();
+            if (obs && estaConectado()) {
+                console.log("Macro OBS:", action.command);
+                await obs.call(action.command, action.args || {});
+            } else {
+                console.log("OBS no conectado.");
+            }
+        }
+      } catch (error) {
+          console.error("Error en macro:", error.message);
+      }
     }
 }
 
 async function triggerAutomation(platform, eventName, eventData) {
+  abortMacroFlag = false
   console.log(`EVENTO: [${platform.toUpperCase()}] -> ${eventName}`);
   
   if (currentButtonsData.length === 0) return;
@@ -250,11 +270,6 @@ async function triggerAutomation(platform, eventName, eventData) {
 
       // Si no tiene condiciones, se ejecuta SIEMPRE Y CUANDO coincda servicio/evento
       return true;
-
-      // if (matchService && matchEvent && platform === 'obs' && cmd.trigger.condition?.inputKind) {
-      //     return eventData.inputKind === cmd.trigger.condition.inputKind;
-      // }
-      // return matchService && matchEvent;
     });
 
     if (commandsToExecute.length > 0) {
