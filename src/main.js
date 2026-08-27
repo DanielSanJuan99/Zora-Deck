@@ -218,18 +218,42 @@ async function executeMacro(commands, context = {}) {
         }
 
         if (action.service === 'twitch') {
+          const finalMsg = action.message;
+          if (isTwitchConnected) {
             console.log("Macro Twitch:", action.message);
             await sendTwitchMessage(action.message);
+          }  else {
+            console.log(`⚠️ (Offline) Mensaje omitido para Twitch: "${finalMsg}"`);
+          }
+          continue;
         } 
         
         if (action.service === 'obs') {
-            const obs = getOBSInstance();
-            if (obs && estaConectado()) {
-                console.log("Macro OBS:", action.command);
-                await obs.call(action.command, action.args || {});
-            } else {
-                console.log("OBS no conectado.");
+          const obs = getOBSInstance();
+          if (obs && estaConectado()) {
+            console.log(`🎬 Macro OBS: ${action.command}`);
+              
+            // Atajo inteligente: Traduce el nombre de la fuente a su ID numérico
+            if (action.command === 'SetSceneItemEnabled' && action.args.sourceName) {
+              try {
+                const { sceneItems } = await obs.call('GetSceneItemList', { sceneName: action.args.sceneName });
+                const targetItem = sceneItems.find(item => item.sourceName === action.args.sourceName);
+                      
+                if (targetItem) {
+                  action.args.sceneItemId = targetItem.sceneItemId; // Inyecta el ID correcto
+                } else {
+                  console.log(`⚠️ OBS: No se encontró "${action.args.sourceName}" en "${action.args.sceneName}"`);
+                  continue;
+                }
+              } catch (e) {
+                console.error("Error buscando ID en OBS:", e);
+              }
             }
+
+            await obs.call(action.command, action.args || {});
+          } else {
+            console.log("⚠️ OBS no conectado.");
+          }
         }
       } catch (error) {
           console.error("Error en macro:", error.message);
@@ -283,7 +307,17 @@ async function triggerAutomation(platform, eventName, eventData) {
 
     if (commandsToExecute.length > 0) {
         console.log(`Ejecutando botón: "${button.label}"`);
-        executeMacro(button.commands, eventData);
+
+        const normalizedContext = { ...eventData };
+        
+        if (platform === 'twitch') {
+            // Mapeamos los datos para crear etiquetas estándar
+            normalizedContext.usuario = eventData.userName || eventData.user || "Alguien";
+            normalizedContext.mensaje = eventData.message || "";
+            normalizedContext.recompensa = eventData.rewardTitle || eventData.reward || "";
+        }
+
+        executeMacro(button.commands, normalizedContext);
     }
   });
 }

@@ -38,5 +38,10 @@
     { "socketEvent": "ReplayBufferStateChanged", "triggerName": "ReplayBufferStateChanged", "category": "OBS", "subCategory": "Salidas" },
 
     { "socketEvent": "CurrentProfileChanged", "triggerName": "ProfileChanged", "category": "OBS", "subCategory": "Configuración Global" },
-    { "socketEvent": "CurrentSceneCollectionChanged", "triggerName": "SceneCollectionChanged", "category": "OBS", "subCategory": "Configuración Global" }
+    { "socketEvent": "CurrentSceneCollectionChanged", "triggerName": "SceneCollectionChanged", "category": "OBS", "subCategory": "Configuración Global" },
+    { "socketEvent": "SetCurrentProgramScene", "triggerName": "Cambiar Escena", "category": "OBS", "subCategory": "Acciones" },
+    { "socketEvent": "SetSceneItemEnabled", "triggerName": "Alternar Visibilidad de Fuente", "category": "OBS", "subCategory": "Acciones" },
+    { "socketEvent": "SetSourceFilterEnabled", "triggerName": "Alternar Filtro", "category": "OBS", "subCategory": "Acciones" },
+    { "socketEvent": "ToggleInputMute", "triggerName": "Mutear/Desmutear Audio", "category": "OBS", "subCategory": "Acciones" },
+    { "socketEvent": "CreateInput", "triggerName": "Crear Fuente de Texto", "category": "OBS", "subCategory": "Acciones" }
 ]

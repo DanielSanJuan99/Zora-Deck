@@ -28,5 +28,6 @@
 
     { "socketEvent": "channel.ad_break.begin", "triggerName": "AdBreakStarted", "category": "Twitch", "subCategory": "Estado del Stream" },
     { "socketEvent": "stream.online", "triggerName": "StreamLive", "category": "Twitch", "subCategory": "Estado del Stream" },
-    { "socketEvent": "stream.offline", "triggerName": "StreamOffline", "category": "Twitch", "subCategory": "Estado del Stream" }
+    { "socketEvent": "stream.offline", "triggerName": "StreamOffline", "category": "Twitch", "subCategory": "Estado del Stream" },
+    { "socketEvent": "SendMessage", "triggerName": "Enviar Mensaje al Chat", "category": "Twitch", "subCategory": "Acciones" }
 ]

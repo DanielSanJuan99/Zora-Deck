@@ -620,7 +620,7 @@ async function renderCommandEditor(slotId) {
             audio.currentTime = 0;
         });
         activeAudios = [];
-        
+
         if (window.windowAPI && window.windowAPI.stopCommands) {
             window.windowAPI.stopCommands();
             const btn = document.getElementById('btn-stop-cmd');
@@ -652,7 +652,19 @@ window.insertCommand = (eventName, service) => {
             iterations: 3,
             commands: [ { action: { service: "system", command: "delay", args: { ms: 500 } } } ]
         };
-    } 
+    } else if (eventName === 'Cambiar Escena') {
+        newCmd = { action: { service: "obs", command: "SetCurrentProgramScene", args: { sceneName: "Nombre_De_Tu_Escena" } } };
+    } else if (eventName === 'Alternar Visibilidad de Fuente') {
+        newCmd = { action: { service: "obs", command: "SetSceneItemEnabled", args: { sceneName: "NombreEscena", sourceName: "NombreDeTuFuente", sceneItemEnabled: true } } };
+    } else if (eventName === 'Alternar Filtro') {
+        newCmd = { action: { service: "obs", command: "SetSourceFilterEnabled", args: { sourceName: "NombreFuente", filterName: "NombreFiltro", filterEnabled: true } } };
+    } else if (eventName === 'Mutear/Desmutear Audio') {
+        newCmd = { action: { service: "obs", command: "ToggleInputMute", args: { inputName: "Micrófono" } } };
+    } else if (eventName === 'Enviar Mensaje al Chat') {
+        newCmd = { action: { service: "twitch", message: "¡Hola desde Zora-Deck!" } };
+    } else if (eventName === 'Crear Fuente de Texto') {
+        newCmd = { action: { service: "obs", command: "CreateInput", args: { sceneName: "TuEscena", inputName: "NuevoTexto", inputKind: "text_gdiplus_v2", inputSettings: { text: "¡Hola Mundo!" } } } }
+    }
     // 2. PLANTILLAS INTELIGENTES DE TWITCH
     else if (service === 'twitch') {
         newCmd = {
