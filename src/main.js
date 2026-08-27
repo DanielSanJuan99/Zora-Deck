@@ -103,7 +103,7 @@ ipcMain.on('test-commands-execution', (event, commands) => {
 });
 
 ipcMain.on('stop-macro-execution', () => {
-  console.log('ABORTANO MACRO');
+  console.log('ABORTANDO MACRO');
   abortMacroFlag = true;
 });
 
@@ -188,12 +188,20 @@ async function executeMacro(commands, context = {}) {
         // 2.- COMANDOS ESTANDAR
         const action = cmd.action || cmd;
 
+        // Simulador de eventos externos
+        if (action.service === 'system' && action.command === 'simulateEvent') {
+          console.log(`🧪 Simulando evento externo: ${action.args.event}`);
+          // Llamamos a triggerAutomation pasando los datos falsos que inventemos en JSON
+          triggerAutomation(action.args.service, action.args.event, action.args.context);
+          continue;
+        }
+
         // Delay
         if (action.service === 'system' && action.command === 'delay') {
-            const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
-            console.log(`Esperando ${ms}ms...`);
-            await delayMs(ms);
-            continue;
+          const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
+          console.log(`Esperando ${ms}ms...`);
+          await delayMs(ms);
+          continue;
         }
 
         // Play Audio
@@ -260,7 +268,8 @@ async function triggerAutomation(platform, eventName, eventData) {
 
           // Condición por nombre de recompensa (ej: "hidratación")
           if (eventName === 'ChannelPointsRedeemed' && cmd.trigger.condition.rewardTitle) {
-            return eventData.reward.toLowerCase() === cmd.trigger.condition.rewardTitle.toLowerCase();
+            if(!eventData.rewardTitle) return false;
+            return eventData.rewardTitle.toLowerCase() === cmd.trigger.condition.rewardTitle.toLowerCase();
           }
         }
 
@@ -274,7 +283,7 @@ async function triggerAutomation(platform, eventName, eventData) {
 
     if (commandsToExecute.length > 0) {
         console.log(`Ejecutando botón: "${button.label}"`);
-        executeMacro(button.commands);
+        executeMacro(button.commands, eventData);
     }
   });
 }
