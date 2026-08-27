@@ -7,6 +7,8 @@ let currentDeckData = {
     buttons: {} 
 };
 
+let activeAudios = [];
+
 /* ============================= */
 /* CONTROLES DE VENTANA ELECTRON */
 /* ============================= */
@@ -50,7 +52,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 const cleanPath = filepath.replace(/\\/g, '/');
                 const audio = new Audio(`file:///${cleanPath}`);
                 audio.volume = 0.4; // Volumen en 40% por defecto
+
+                activeAudios.push(audio);
+                audio.onended = () => { activeAudios = activeAudios.filter(a => a !== audio); }; // Lo borramos al terminar
+
                 audio.play();
+
             } catch (e) {
                 console.error('Error reproduciendo audio: ', e);
             }
@@ -608,6 +615,12 @@ async function renderCommandEditor(slotId) {
     };
 
     document.getElementById('btn-stop-cmd').onclick = () => {
+        activeAudios.forEach(audio => {
+            audio.pause();
+            audio.currentTime = 0;
+        });
+        activeAudios = [];
+        
         if (window.windowAPI && window.windowAPI.stopCommands) {
             window.windowAPI.stopCommands();
             const btn = document.getElementById('btn-stop-cmd');
