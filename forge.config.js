@@ -9,7 +9,9 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        name: 'zora_deck'
+      },
     },
     {
       name: '@electron-forge/maker-zip',
@@ -17,7 +19,12 @@ module.exports = {
     },
     {
       name: '@electron-forge/maker-deb',
-      config: {},
+      config: {
+        options: {
+          maintainer: 'Drock',
+          productName: 'Zora Deck'
+        }
+      },
     },
     {
       name: '@electron-forge/maker-rpm',

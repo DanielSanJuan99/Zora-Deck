@@ -1,0 +1,40 @@
+name: Build & Release Zora Deck
+
+on:
+  push:
+    tags:
+      - 'v*' # El workflow se ejecutará cuando pushees un tag como "v1.0.0"
+
+permissions:
+  contents: write # Necesario para crear y subir archivos al Release
+
+jobs:
+  build-and-release:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Ajusta a la versión exacta de Node que estés usando
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar ejecutables (Make)
+        run: npm run make
+
+      - name: Publicar en GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/make/**/*.exe
+            out/make/**/*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
