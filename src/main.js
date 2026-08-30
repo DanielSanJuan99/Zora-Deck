@@ -303,8 +303,10 @@ async function triggerAutomation(platform, eventName, eventData) {
 
           // Condición por nombre de recompensa (ej: "hidratación")
           if (eventName === 'ChannelPointsRedeemed' && cmd.trigger.condition.rewardTitle) {
-            if(!eventData.rewardTitle) return false;
-            return eventData.rewardTitle.toLowerCase() === cmd.trigger.condition.rewardTitle.toLowerCase();
+            const incomingReward = eventData.rewardTitle || eventData.reward;
+
+            if(!incomingReward) return false;
+            return incomingReward.toLowerCase() === cmd.trigger.condition.rewardTitle.toLowerCase();
           }
         }
 
