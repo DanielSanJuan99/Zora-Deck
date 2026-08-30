@@ -11,21 +11,32 @@ import { setupTwitch, saveInitialTokens, sendTwitchMessage } from './twitch-auth
 // --- CONFIGURACIÓN DE RUTAS DINÁMICAS (CORRECCIÓN VITE) ---
 const isDev = !app.isPackaged;
 
-const CONFIG_FOLDER = isDev 
-    ? path.join(process.cwd(), 'src', 'config') 
-    : path.join(process.cwd(), 'config');
+const staticBasePath = isDev ? process.cwd() : app.getAppPath();
+const STATIC_CONFIG_FOLDER = isDev 
+    ? path.join(staticBasePath, 'src', 'config') 
+    : path.join(staticBasePath, '.vite', 'build', 'config');
 
-const OBS_EVENTS_PATH = path.join(CONFIG_FOLDER, 'obs-events.json');
-const TWITCH_EVENTS_PATH = path.join(CONFIG_FOLDER, 'twitch-events.json');
-const KICK_TOKEN_PATH = path.join(CONFIG_FOLDER, 'kick-token.json');
+const OBS_EVENTS_PATH = path.join(STATIC_CONFIG_FOLDER, 'obs-events.json');
+const TWITCH_EVENTS_PATH = path.join(STATIC_CONFIG_FOLDER, 'twitch-events.json');
+
+const USER_DATA_FOLDER = isDev 
+    ? path.join(process.cwd(), 'src', 'config') 
+    : app.getPath('userData');
+
+const KICK_TOKEN_PATH = path.join(USER_DATA_FOLDER, 'kick-token.json');
 
 console.log("-----------------------------------------");
 console.log("MODO DESARROLLO:", isDev);
-console.log("RUTA DE CONFIGURACIÓN:", CONFIG_FOLDER);
+console.log("RUTA BASE:", staticBasePath);
+console.log("RUTA DE CONFIGURACIÓN:", USER_DATA_FOLDER);
 console.log("-----------------------------------------");
 
-if (!fs.existsSync(CONFIG_FOLDER)) {
-    fs.mkdirSync(CONFIG_FOLDER, { recursive: true });
+if (isDev && !fs.existsSync(STATIC_CONFIG_FOLDER)) {
+  fs.mkdirSync(STATIC_CONFIG_FOLDER, { recursive: true });
+}
+
+if (!fs.existsSync(USER_DATA_FOLDER)) {
+    fs.mkdirSync(USER_DATA_FOLDER, { recursive: true });
 }
 
 function loadConfigList(filePath) {
@@ -49,12 +60,12 @@ function loadConfigList(filePath) {
 let obsEvents = loadConfigList(OBS_EVENTS_PATH);
 let twitchEvents = loadConfigList(TWITCH_EVENTS_PATH);
 
-const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+const CLIENT_ID = 'hhoos5qi41xfs6qq7z9pe2159mobzo';
+// const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const REDIRECT_URI = 'http://localhost:3000/callback'; 
-const KICK_CLIENT_ID = process.env.KICK_CLIENT_ID;
-const KICK_CLIENT_SECRET = process.env.KICK_CLIENT_SECRET;
-const KICK_REDIRECT_URI = 'http://localhost:3000/kickauth';
+// const KICK_CLIENT_ID = process.env.KICK_CLIENT_ID;
+// const KICK_CLIENT_SECRET = process.env.KICK_CLIENT_SECRET;
+// const KICK_REDIRECT_URI = 'http://localhost:3000/kickauth';
 
 if (started) app.quit();
 
@@ -431,7 +442,7 @@ ipcMain.on('kick:auth-request', async (event) => {
 ipcMain.handle('twitch:get-status', async () => {
   if (isTwitchConnected) return { success: true, username: cachedUsername || "Conectado" };
   try {
-    const result = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow, triggerAutomation);
+    const result = await setupTwitch(CLIENT_ID, '', mainWindow, triggerAutomation);
     if (result.success) {
       isTwitchConnected = true;
       cachedUsername = result.username;
@@ -451,31 +462,40 @@ ipcMain.on('twitch:auth-request', async (event) => {
     webPreferences: { nodeIntegration: false }
   });
   const scopes = encodeURIComponent('chat:read chat:edit channel:read:redemptions channel:read:subscriptions moderator:read:followers');
-  const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scopes}`;
+  const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${scopes}`;
   authWindow.loadURL(authUrl);
   authWindow.once('ready-to-show', () => authWindow.show());
   
-  const handleNavigation = async (url) => {
-    if (url.includes(REDIRECT_URI)) {
-      const urlObj = new URL(url);
-      const code = urlObj.searchParams.get('code');
-      if (code && !isResponded) {
+  const handleNavigation = async (navEvent, url) => {
+    if (url.startsWith(REDIRECT_URI)) {
+
+      navEvent.preventDefault();
+
+      const hash = new URL(url).hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+
+      if (accessToken && !isResponded) {
         isResponded = true;
         authWindow.destroy(); 
+
         try {
-          const response = await fetch('https://id.twitch.tv/oauth2/token', {
-            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              client_id: CLIENT_ID, client_secret: CLIENT_SECRET, code: code,
-              grant_type: 'authorization_code', redirect_uri: REDIRECT_URI
-            })
-          });
-          const tokenData = await response.json();
+          const tokenData = {
+            access_token: accessToken,
+            expires_in: params.get('expires_in') || 0,
+            scope: scopes.split(' '),
+            token_type: 'bearer'
+          }
+
+          await saveInitialTokens(tokenData);
+
           if (tokenData.access_token) {
-            await saveInitialTokens(tokenData);
             setTimeout(async () => {
-              const finalResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow, triggerAutomation);
-              if (finalResult.success) { isTwitchConnected = true; cachedUsername = finalResult.username; }
+              const finalResult = await setupTwitch(CLIENT_ID, '', mainWindow, triggerAutomation);
+              if (finalResult.success) { 
+                isTwitchConnected = true; 
+                cachedUsername = finalResult.username; 
+              }
               event.reply('twitch:auth-response', finalResult);
             }, 500);
           } else { event.reply('twitch:auth-response', { success: false }); }
@@ -483,8 +503,8 @@ ipcMain.on('twitch:auth-request', async (event) => {
       }
     }
   };
-  authWindow.webContents.on('will-navigate', (e, url) => handleNavigation(url));
-  authWindow.webContents.on('will-redirect', (e, url) => handleNavigation(url));
+  authWindow.webContents.on('will-navigate', (e, url) => handleNavigation(e, url));
+  authWindow.webContents.on('will-redirect', (e, url) => handleNavigation(e, url));
   authWindow.on('closed', () => { if (!isResponded) event.reply('twitch:auth-response', { success: false }); });
 });
 
@@ -528,7 +548,7 @@ app.whenReady().then(async () => {
   });
 
   try {
-    const initResult = await setupTwitch(CLIENT_ID, CLIENT_SECRET, mainWindow, triggerAutomation);
+    const initResult = await setupTwitch(CLIENT_ID, '', mainWindow, triggerAutomation);
     if (initResult.success) {
       isTwitchConnected = true;
       cachedUsername = initResult.username;

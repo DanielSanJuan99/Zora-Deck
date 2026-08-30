@@ -85,32 +85,6 @@ menuContainers.forEach(container => {
 
 document.addEventListener('click', closeMenus);
 
-/* ============================= */
-/* CARGA DE PANELES (OVERLAY)    */
-/* ============================= */
-async function loadPanel(path) {
-    try {
-        const existingPanel = document.getElementById('panel-overlay');
-        if (existingPanel) existingPanel.remove();
-
-        const response = await fetch(path);
-        if (!response.ok) throw new Error(`Error: ${response.statusText}`);
-
-        const html = await response.text();
-        const panelOverlay = document.createElement('div');
-        panelOverlay.id = 'panel-overlay';
-        panelOverlay.innerHTML = html;
-        document.body.appendChild(panelOverlay);
-
-        const closeBtn = panelOverlay.querySelector('[data-close-panel]');
-        if (closeBtn) closeBtn.onclick = () => panelOverlay.remove();
-
-        if (path.includes('settings.html')) requestAnimationFrame(() => initSettingsLogic());
-    } catch (err) {
-        console.error('Error cargando panel:', err);
-    }
-}
-
 /* ======================================= */
 /* LÓGICA DEL HUB DE DECKS (ACTUALIZADA)   */
 /* ======================================= */
@@ -860,17 +834,41 @@ function initSettingsLogic() {
 /* ============================= */
 /* NAVEGACIÓN GENERAL            */
 /* ============================= */
+// HTML ESTÁTICO DEL PROGRAMA
+import settingsHtml from './panels/settings.html?raw';
+import exploreHtml from './panels/explore.html?raw';
+import addonsHtml from './panels/addons.html?raw';
+
+// inyección de HTML pre-cargado
+function injectPanelHTML (htmlContent) {
+    try {
+        const existingPanel = document.getElementById('panel-overlay');
+        if (existingPanel) existingPanel.remove();
+
+        const panelOverlay = document.createElement('div');
+        panelOverlay.id = 'panel-overlay';
+        panelOverlay.innerHTML = htmlContent;
+        document.body.appendChild(panelOverlay);
+
+        const closeBtn = panelOverlay.querySelector('[data-close-panel]');
+        if (closeBtn) closeBtn.onclick = () => panelOverlay.remove();
+    } catch (e) {
+        console.error('Error inyectando panel: ', e);
+    }
+}
+
 document.getElementById('menu-settings')?.addEventListener('click', () => {
-    loadPanel('/src/panels/settings.html');
+    injectPanelHTML(settingsHtml);
+    requestAnimationFrame(() => initSettingsLogic());
     closeMenus();
 });
 
 document.getElementById('menu-explore')?.addEventListener('click', () => {
-    loadPanel('/src/panels/explore.html');
+    injectPanelHTML(exploreHtml);
 });
 
 document.getElementById('menu-addons')?.addEventListener('click', () => {
-    loadPanel('/src/panels/addons.html');
+    injectPanelHTML(addonsHtml);
 });
 
 /* ============================= */

@@ -1,16 +1,20 @@
-import { RefreshingAuthProvider } from '@twurple/auth';
+import { StaticAuthProvider } from '@twurple/auth';
 import { ApiClient } from '@twurple/api';
 import { ChatClient } from '@twurple/chat';
 import { EventSubWsListener } from '@twurple/eventsub-ws';
-import { safeStorage } from 'electron';
+import { app, safeStorage } from 'electron';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-const TOKEN_PATH = path.join(process.cwd(), 'twitch-tokens.json');
+const isDev = !app.isPackaged;
+const USER_DATA_FOLDER = isDev ? process.cwd() : app.getPath('userData');
+const TOKEN_PATH = path.join(USER_DATA_FOLDER, 'twitch-tokens.json');
 
-let authProvider;
-let apiClient;
-let chatClient;
+// Variables globales
+let authProvider = null;
+let apiClient = null;
+let chatClient = null;
+let listener = null; 
 
 export async function setupTwitch(clientId, clientSecret, mainWindow, triggerAutomation) {
   try {
@@ -19,123 +23,98 @@ export async function setupTwitch(clientId, clientSecret, mainWindow, triggerAut
     try {
       tokenData = await loadToken();
     } catch (err) {
-      console.log('Esperando vinculación manual: No se encontró twitch-tokens.json');
+      console.log('Esperando vinculación manual...');
       return { success: false, error: 'NEED_AUTH' };
     }
 
-    if (!authProvider) {
-      authProvider = new RefreshingAuthProvider({
-        clientId,
-        clientSecret,
-        onRefresh: async (userId, newTokenData) => await saveInitialTokens(newTokenData),
-      });
+    const accessToken = tokenData.access_token || tokenData.accessToken;
+    
+    authProvider = new StaticAuthProvider(clientId, accessToken);
+    apiClient = new ApiClient({ authProvider });
+
+    // EL GRAN CAMBIO: Obtenemos los datos directo del token para evadir el minificador de Vite
+    let tokenInfo;
+    try {
+      tokenInfo = await apiClient.getTokenInfo();
+    } catch (apiErr) {
+      console.error("Error validando el token:", apiErr);
+      throw new Error("401 - El token es inválido o ha caducado.");
     }
 
-    const userId = await authProvider.addUserForToken({
-      accessToken: tokenData.access_token || tokenData.accessToken,
-      refreshToken: tokenData.refresh_token || tokenData.refreshToken,
-      expiresIn: tokenData.expires_in || 0,
-      obtainmentTimestamp: tokenData.obtainmentTimestamp || Date.now(),
-      scope: tokenData.scope || ['chat:read', 'chat:edit']
-    }, ['chat']);
-
-    if (!apiClient) {
-      apiClient = new ApiClient({ authProvider });
+    if (!tokenInfo.userId) {
+        throw new Error("El token no pertenece a un usuario válido.");
     }
 
-    const listener = new EventSubWsListener({ apiClient });
+    // Reiniciamos el listener si existía uno previo
+    if (listener) {
+        listener.stop();
+    }
+    
+    listener = new EventSubWsListener({ apiClient });
     listener.start();
-    console.log("EventSub Lisener inicializado para eventos de canal");
+    console.log("EventSub Listener inicializado");
 
-    listener.onChannelRedemptionAdd(userId, (e) => {
-      console.log(`Recompensa canjeada : ${e.rewardTitle}`);
+    listener.onChannelRedemptionAdd(tokenInfo.userId, (e) => {
+      console.log(`Recompensa canjeada: ${e.rewardTitle}`);
       if (triggerAutomation) {
-        triggerAutomation('twitch', 'ChannelPointsRedeemd', {
+        triggerAutomation('twitch', 'ChannelPointsRedeemed', {
           user: e.userName,
           reward: e.rewardTitle
         });
       }
     });
 
-    let user = null;
-    try {
-      user = await apiClient.users.getAuthenticatedUser(userId);
-    } catch (apiErr) {
-      try {
-        user = await apiClient.users.getUserById(userId);
-      } catch (e2) {
-        console.error('Fallo total en API de usuarios');
-      }
-    }
-
-    if (chatClient && (chatClient.isConnected || chatClient.isConnecting)) {
-      return { success: true, username: user ? user.displayName : "Conectado" };
-    }
-
     if (chatClient) {
       try { await chatClient.quit(); } catch (e) {}
+      chatClient = null;
     }
-
-    const channelName = user ? user.name : userId;
 
     chatClient = new ChatClient({ 
       authProvider, 
-      channels: [channelName] 
+      channels: [tokenInfo.userName] // Usamos el nombre extraído del token
     });
 
-    // Evento de mensajes para que el Main los reciba
     chatClient.onMessage((channel, userMsg, message, msg) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('twitch-chat-message', { user: userMsg, message });
       }
-      
       if (triggerAutomation) {
           triggerAutomation('twitch', 'ChatMessage', { user: userMsg, message: message });
       }
     });
 
     await chatClient.connect();
-    console.log(`¡SISTEMA LISTO! Canal conectado: ${channelName}`);
+    console.log(`¡SISTEMA LISTO! Canal conectado: ${tokenInfo.userName}`);
     
-    return { success: true, username: user ? user.displayName : "Conectado" };
+    return { success: true, username: tokenInfo.userName };
 
   } catch (error) {
     console.error('Error crítico en setupTwitch:', error.message);
 
-    // NUEVO: Manejo específico para caídas de internet
     const isNetworkError = error.message.includes('fetch failed') || error.code === 'ENOTFOUND' || error.code === 'ECONNRESET';
     
     if (isNetworkError) {
-      console.warn('⚠️ Problema de red detectado. No se pudo conectar a Twitch.');
-      
-      // Si la ventana de la interfaz está abierta, le enviamos un aviso
       if (mainWindow && !mainWindow.isDestroyed()) {
          mainWindow.webContents.send('twitch-status-update', { status: 'DISCONNECTED', error: 'Sin red' });
       }
-      
-      // Retornamos un código de error específico para que el Main sepa qué pasó
       return { success: false, error: 'NETWORK_ERROR' };
     }
 
-    // Manejo original de tokens inválidos (401)
     if (error.message.includes('401') || error.message.includes('token')) {
       await fs.unlink(TOKEN_PATH).catch(() => {});
+      authProvider = null;
+      apiClient = null;
     }
     
     return { success: false, error: error.message };
   }
 }
 
-/**
- * NUEVA: Función para enviar mensajes al chat
- * @param {string} message - El texto a enviar
- */
 export async function sendTwitchMessage(message) {
     try {
         if (!chatClient || !chatClient.isConnected) {
             throw new Error("El chat de Twitch no está conectado.");
         }
-        // Obtenemos los canales a los que estamos unidos
         const channels = chatClient.currentChannels;
         if (channels.length > 0) {
             await chatClient.say(channels[0], message);
@@ -148,7 +127,6 @@ export async function sendTwitchMessage(message) {
     }
 }
 
-// Guardamos el token cifrado
 export async function saveInitialTokens(tokenData) {
   const dataToSave = { ...tokenData, obtainmentTimestamp: Date.now() };
   const jsonString = JSON.stringify(dataToSave);
@@ -162,7 +140,6 @@ export async function saveInitialTokens(tokenData) {
   }
 }
 
-// Leemos token cifrado
 async function loadToken() {
   try {
     const fileData = await fs.readFile(TOKEN_PATH);
