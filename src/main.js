@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import started from 'electron-squirrel-startup';
 import { conectarOBS, estaConectado, getOBSInstance, setOBSStatusCallback } from './obs-websocket.js';
-import { setupTwitch, saveInitialTokens, sendTwitchMessage, logoutTwitch } from './twitch-auth.js';
+import { setupTwitch, saveInitialTokens, sendTwitchMessage, logoutTwitch, timeoutTwitchUser } from './twitch-auth.js';
 
 // --- CONFIGURACIÓN DE RUTAS DINÁMICAS (CORRECCIÓN VITE) ---
 const isDev = !app.isPackaged;
@@ -241,12 +241,23 @@ async function executeMacro(commands, context = {}) {
       }
 
       if (action.service === 'twitch') {
-        const finalMsg = action.message;
         if (isTwitchConnected) {
-          console.log("Macro Twitch:", action.message);
-          await sendTwitchMessage(action.message);
-        }  else {
-          console.log(`⚠️ (Offline) Mensaje omitido para Twitch: "${finalMsg}"`);
+          // NUEVO COMANDO: Dar Timeout
+          if (action.command === 'timeoutUser') {
+            const target = action.args?.username;
+            const duration = action.args?.duration || 60; // 60s por defecto
+            const reason = action.args?.reason || "Castigo de Zora Deck";
+            
+            console.log(`Macro Twitch: Timeout a ${target} por ${duration}s`);
+            await timeoutTwitchUser(target, duration, reason);
+          } 
+          // COMANDO CLÁSICO: Enviar Mensaje
+          else if (action.message) {
+            console.log("Macro Twitch:", action.message);
+            await sendTwitchMessage(action.message);
+          }
+        } else {
+          console.log(`(Offline) Acción omitida para Twitch.`);
         }
         continue;
       } 
@@ -497,7 +508,7 @@ ipcMain.on('twitch:auth-request', async (event) => {
     width: 500, height: 700, parent: mainWindow, modal: true, show: false, autoHideMenuBar: true,
     webPreferences: { nodeIntegration: false }
   });
-  const scopes = encodeURIComponent('chat:read chat:edit channel:read:redemptions channel:read:subscriptions moderator:read:followers');
+  const scopes = encodeURIComponent('chat:read chat:edit channel:read:redemptions channel:read:subscriptions moderator:read:followers moderator:manage:banned_users');
   const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${scopes}`;
   authWindow.loadURL(authUrl);
   authWindow.once('ready-to-show', () => authWindow.show());

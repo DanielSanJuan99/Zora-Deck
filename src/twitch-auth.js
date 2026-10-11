@@ -15,6 +15,7 @@ let authProvider = null;
 let apiClient = null;
 let chatClient = null;
 let listener = null; 
+let broadcasterId = null;
 
 export async function setupTwitch(clientId, clientSecret, mainWindow, triggerAutomation) {
   try {
@@ -32,7 +33,7 @@ export async function setupTwitch(clientId, clientSecret, mainWindow, triggerAut
     authProvider = new StaticAuthProvider(clientId, accessToken);
     apiClient = new ApiClient({ authProvider });
 
-    // EL GRAN CAMBIO: Obtenemos los datos directo del token para evadir el minificador de Vite
+    // Obtenemos los datos directo del token para evadir el minificador de Vite
     let tokenInfo;
     try {
       tokenInfo = await apiClient.getTokenInfo();
@@ -44,6 +45,8 @@ export async function setupTwitch(clientId, clientSecret, mainWindow, triggerAut
     if (!tokenInfo.userId) {
         throw new Error("El token no pertenece a un usuario válido.");
     }
+
+    broadcasterId = tokenInfo.userId;
 
     // Reiniciamos el listener si existía uno previo
     if (listener) {
@@ -178,5 +181,32 @@ export async function logoutTwitch(mainWindow) {
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
+  }
+}
+
+export async function timeoutTwitchUser(targetUsername, durationSeconds, reason = "Canje de Zora Deck") {
+  try {
+    if (!apiClient || !broadcasterId) {
+      throw new Error("La API de Twitch no está conectada.");
+    }
+
+    // 1. Buscar el ID exacto del usuario objetivo
+    const targetUser = await apiClient.users.getUserByName(targetUsername);
+    if (!targetUser) {
+      throw new Error(`No se encontró al usuario: ${targetUsername}`);
+    }
+
+    // 2. Ejecutar el Timeout (broadcaster y moderador son el mismo ID en este caso)
+    await apiClient.moderation.banUser(broadcasterId, broadcasterId, {
+      user: targetUser.id,
+      duration: durationSeconds,
+      reason: reason
+    });
+
+    console.log(`🔨 Timeout aplicado a ${targetUsername} por ${durationSeconds} segundos.`);
+    return { success: true };
+  } catch (error) {
+      console.error("❌ Error aplicando timeout:", error);
+      return { success: false, error: error.message };
   }
 }
