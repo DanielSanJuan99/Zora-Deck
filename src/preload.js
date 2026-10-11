@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('windowAPI', {
   onTwitchChatMessage: (callback) => {
     ipcRenderer.on('twitch:chat-message', (event, arg) => callback(arg));
   },
+  disconnectTwitch: () => ipcRenderer.send('twitch:logout-request'),
 
   // --- Lógica de KICK ---
   sendKickAuth: () => ipcRenderer.send('kick:auth-request'),
@@ -31,6 +32,7 @@ contextBridge.exposeInMainWorld('windowAPI', {
     ipcRenderer.removeAllListeners('kick:auth-success');
     ipcRenderer.on('kick:auth-success', (event, arg) => callback(arg));
   },
+  disconnectKick: () => ipcRenderer.send('kick:logout-request'),
 
   /* ========================================= */
   /* NUEVO: LÓGICA DE AUTOMATIZACIÓN Y GRID    */

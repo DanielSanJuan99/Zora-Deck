@@ -757,12 +757,12 @@ function initSettingsLogic() {
     });
 
     // 4. --- LÓGICA TWITCH ---
-    if (btnAuthTwitch) {
-        btnAuthTwitch.onclick = () => {
-            btnAuthTwitch.innerText = "Conectando...";
-            window.windowAPI.sendTwitchAuth(); 
-        };
-    }
+    // if (btnAuthTwitch) {
+    //     btnAuthTwitch.onclick = () => {
+    //         btnAuthTwitch.innerText = "Conectando...";
+    //         window.windowAPI.sendTwitchAuth(); 
+    //     };
+    // }
 
     window.windowAPI.onTwitchResponse((res) => {
         updateTwitchUI(res);
@@ -771,15 +771,20 @@ function initSettingsLogic() {
     function updateTwitchUI(res) {
         if (!btnAuthTwitch) return;
         if (res.success) {
-            btnAuthTwitch.innerText = "Cuenta Vinculada";
-            btnAuthTwitch.classList.add('connected');
+            btnAuthTwitch.innerText = "Desvincular Cuenta";
+            btnAuthTwitch.style.backgroundColor = "#e74c3c"; //rojo
+            btnAuthTwitch.onclick = () => window.windowAPI.disconnectTwitch();
             if (twitchStatus) {
                 twitchStatus.innerText = `Conectado como: ${res.username}`;
                 twitchStatus.className = "status-label status-connected";
             }
         } else {
             btnAuthTwitch.innerText = "Vincular Cuenta";
-            btnAuthTwitch.classList.remove('connected');
+            btnAuthTwitch.style.backgroundColor = ""; // sin color
+            btnAuthTwitch.onclick = () => {
+                btnAuthTwitch.innerText = "Conectando...";
+                window.windowAPI.sendTwitchAuth(); 
+            };
             if (twitchStatus) {
                 twitchStatus.innerText = "Desconectado";
                 twitchStatus.className = "status-label status-disconnected";
@@ -793,15 +798,20 @@ function initSettingsLogic() {
     function updateKickUI(res) {
         if (!btnAuthKick) return;
         if (res.success) {
-            btnAuthKick.innerText = "Cuenta Vinculada";
-            btnAuthKick.classList.add('connected');
+            btnAuthKick.innerText = "Desvincular Cuenta";
+            btnAuthKick.style.backgroundColor = "#e74c3c";
+            btnAuthKick.onclick = () => window.windowAPI.disconnectKick();
             if (kickStatus) {
                 kickStatus.innerText = "Conectado";
                 kickStatus.className = "status-label status-connected";
             }
         } else {
             btnAuthKick.innerText = "Vincular Cuenta";
-            btnAuthKick.classList.remove('connected');
+            btnAuthKick.style.backgroundColor = "";
+            btnAuthKick.onclick = () => {
+                btnAuthKick.innerText = "Conectando...";
+                window.windowAPI.sendKickAuth(); 
+            };
             if (kickStatus) {
                 kickStatus.innerText = "Desconectado";
                 kickStatus.className = "status-label status-disconnected";
@@ -809,12 +819,12 @@ function initSettingsLogic() {
         }
     }
 
-    if (btnAuthKick) {
-        btnAuthKick.onclick = () => {
-            btnAuthKick.innerText = "Conectando...";
-            window.windowAPI.sendKickAuth(); 
-        };
-    }
+    // if (btnAuthKick) {
+    //     btnAuthKick.onclick = () => {
+    //         btnAuthKick.innerText = "Conectando...";
+    //         window.windowAPI.sendKickAuth(); 
+    //     };
+    // }
 
     // Escuchamos el éxito de la autorización desde el servidor temporal
     window.windowAPI.onKickSuccess(async (data) => {

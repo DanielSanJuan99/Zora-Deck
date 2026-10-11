@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import started from 'electron-squirrel-startup';
 import { conectarOBS, estaConectado, getOBSInstance, setOBSStatusCallback } from './obs-websocket.js';
-import { setupTwitch, saveInitialTokens, sendTwitchMessage } from './twitch-auth.js'; 
+import { setupTwitch, saveInitialTokens, sendTwitchMessage, logoutTwitch } from './twitch-auth.js';
 
 // --- CONFIGURACIÓN DE RUTAS DINÁMICAS (CORRECCIÓN VITE) ---
 const isDev = !app.isPackaged;
@@ -464,6 +464,13 @@ ipcMain.on('kick:auth-request', async (event) => {
     });
 });
 
+ipcMain.on('kick:logout-request', async (event) => {
+    try {
+        if (fs.existsSync(KICK_TOKEN_PATH)) fs.unlinkSync(KICK_TOKEN_PATH);
+        event.reply('kick:auth-response', { success: false }); // Falso = Desconectado
+    } catch (e) {}
+});
+
 /* ========================================= */
 /* LÓGICA DE TWITCH                          */
 /* ========================================= */
@@ -535,6 +542,13 @@ ipcMain.on('twitch:auth-request', async (event) => {
   authWindow.webContents.on('will-navigate', (e, url) => handleNavigation(e, url));
   authWindow.webContents.on('will-redirect', (e, url) => handleNavigation(e, url));
   authWindow.on('closed', () => { if (!isResponded) event.reply('twitch:auth-response', { success: false }); });
+});
+
+ipcMain.on('twitch:logout-request', async (event) => {
+    await logoutTwitch(mainWindow);
+    isTwitchConnected = false;
+    cachedUsername = "";
+    event.reply('twitch:auth-response', { success: false }); // Falso = Desconectado
 });
 
 /* ========================================= */

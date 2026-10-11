@@ -160,3 +160,23 @@ async function loadToken() {
 }
 
 export { chatClient, apiClient };
+
+export async function logoutTwitch(mainWindow) {
+  try {
+    await fs.unlink(TOKEN_PATH).catch(() => {});
+    if (chatClient) {
+        try { await chatClient.quit(); } catch(e){}
+        chatClient = null;
+    }
+    if (listener) {
+        listener.stop();
+        listener = null;
+    }
+    authProvider = null;
+    apiClient = null;
+    console.log("Cierre de sesión de Twitch completado.");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
