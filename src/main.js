@@ -39,6 +39,8 @@ if (!fs.existsSync(USER_DATA_FOLDER)) {
     fs.mkdirSync(USER_DATA_FOLDER, { recursive: true });
 }
 
+let globalVariables = {};
+
 function loadConfigList(filePath) {
     try {
         if (fs.existsSync(filePath)) {
@@ -158,118 +160,128 @@ function applyContext(cmd, context) {
 }
 
 async function executeMacro(commands, context = {}) {
-    if (!commands || !Array.isArray(commands)) return;
+  if (!commands || !Array.isArray(commands)) return;
 
-    for (const rawCmd of commands) {
+  for (const rawCmd of commands) {
 
-      if (abortMacroFlag) {
-          console.log("Ejecución detenida.");
-          return;
-      }
-      
-      try {
-        const cmd = applyContext(rawCmd, context);
-
-        // 1.- ESTRUCTURA DE CONTROL (Zora Deck)
-        // Bucle (Loop)
-        if (cmd.type === 'loop') {
-          const iters = cmd.iterations || 1;
-          console.log(`Iniciando bucle de ${iters} iteraciones...`);
-          for (let i = 1; i <= iters; i++) {
-            await executeMacro(cmd.commands, { ...context, i: i });
-          }
-          continue;
-        }
-
-        // Conicional (if-else)
-        if (cmd.type === 'if') {
-          console.log('Evaluando condición');
-          const isTrue = evaluateCondition(cmd.condition);
-          
-          if (isTrue && cmd.then) {
-            console.log('Condición cumplida, ejecutando THEN');
-            await executeMacro(cmd.then, context);
-          } else if (!isTrue && cmd.else) {
-            console.log('Condición no cumplida, ejecutando ELSE');
-            await executeMacro(cmd.else, context);
-          }
-          continue;
-        }
-
-        // 2.- COMANDOS ESTANDAR
-        const action = cmd.action || cmd;
-
-        // Simulador de eventos externos
-        if (action.service === 'system' && action.command === 'simulateEvent') {
-          console.log(`🧪 Simulando evento externo: ${action.args.event}`);
-          // Llamamos a triggerAutomation pasando los datos falsos que inventemos en JSON
-          triggerAutomation(action.args.service, action.args.event, action.args.context);
-          continue;
-        }
-
-        // Delay
-        if (action.service === 'system' && action.command === 'delay') {
-          const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
-          console.log(`Esperando ${ms}ms...`);
-          await delayMs(ms);
-          continue;
-        }
-
-        // Play Audio
-        if (action.service === 'system' && action.command === 'playSound') {
-          const filepath = action.args?.path;
-          if (filepath && mainWindow && !mainWindow.isDestroyed()) {
-            console.log(`Reproduciendo audio: ${filepath}`)
-            // Sonido se reproduce en ventana del programa
-            mainWindow.webContents.send('system:play-audio', filepath);
-          } else {
-            console.log('Error: No se especificó la ruta del audio');
-          }
-          continue;
-        }
-
-        if (action.service === 'twitch') {
-          const finalMsg = action.message;
-          if (isTwitchConnected) {
-            console.log("Macro Twitch:", action.message);
-            await sendTwitchMessage(action.message);
-          }  else {
-            console.log(`⚠️ (Offline) Mensaje omitido para Twitch: "${finalMsg}"`);
-          }
-          continue;
-        } 
-        
-        if (action.service === 'obs') {
-          const obs = getOBSInstance();
-          if (obs && estaConectado()) {
-            console.log(`🎬 Macro OBS: ${action.command}`);
-              
-            // Atajo inteligente: Traduce el nombre de la fuente a su ID numérico
-            if (action.command === 'SetSceneItemEnabled' && action.args.sourceName) {
-              try {
-                const { sceneItems } = await obs.call('GetSceneItemList', { sceneName: action.args.sceneName });
-                const targetItem = sceneItems.find(item => item.sourceName === action.args.sourceName);
-                      
-                if (targetItem) {
-                  action.args.sceneItemId = targetItem.sceneItemId; // Inyecta el ID correcto
-                } else {
-                  console.log(`⚠️ OBS: No se encontró "${action.args.sourceName}" en "${action.args.sceneName}"`);
-                  continue;
-                }
-              } catch (e) {
-                console.error("Error buscando ID en OBS:", e);
-              }
-            }
-
-            await obs.call(action.command, action.args || {});
-          } else {
-            console.log("⚠️ OBS no conectado.");
-          }
-        }
-      } catch (error) {
-          console.error("Error en macro:", error.message);
-      }
+    if (abortMacroFlag) {
+        console.log("Ejecución detenida.");
+        return;
     }
+    
+    try {
+      const cmd = applyContext(rawCmd, context);
+
+      // 1.- ESTRUCTURA DE CONTROL (Zora Deck)
+      // Bucle (Loop)
+      if (cmd.type === 'loop') {
+        const iters = cmd.iterations || 1;
+        console.log(`Iniciando bucle de ${iters} iteraciones...`);
+        for (let i = 1; i <= iters; i++) {
+          await executeMacro(cmd.commands, { ...context, i: i });
+        }
+        continue;
+      }
+
+      // Conicional (if-else)
+      if (cmd.type === 'if') {
+        console.log('Evaluando condición');
+        const isTrue = evaluateCondition(cmd.condition);
+        
+        if (isTrue && cmd.then) {
+          console.log('Condición cumplida, ejecutando THEN');
+          await executeMacro(cmd.then, context);
+        } else if (!isTrue && cmd.else) {
+          console.log('Condición no cumplida, ejecutando ELSE');
+          await executeMacro(cmd.else, context);
+        }
+        continue;
+      }
+
+      // Guardar Variable
+      if (cmd.type === 'setVariable') {
+        const varName = cmd.variable;
+        // applyContext evaluará si el valor es texto estático o dinámico (ej. ${escenaActual})
+        const varValue = applyContext(cmd.value, context);
+        globalVariables[varName] = varName;
+        console.log(`Variable guardada: ${varName} = ${varValue}`);
+        continue;
+      }
+
+      // 2.- COMANDOS ESTANDAR
+      const action = cmd.action || cmd;
+
+      // Simulador de eventos externos
+      if (action.service === 'system' && action.command === 'simulateEvent') {
+        console.log(`🧪 Simulando evento externo: ${action.args.event}`);
+        // Llamamos a triggerAutomation pasando los datos falsos que inventemos en JSON
+        triggerAutomation(action.args.service, action.args.event, action.args.context);
+        continue;
+      }
+
+      // Delay
+      if (action.service === 'system' && action.command === 'delay') {
+        const ms = action.args?.ms || 1000; // 1 segundo por defecto si no se especifica
+        console.log(`Esperando ${ms}ms...`);
+        await delayMs(ms);
+        continue;
+      }
+
+      // Play Audio
+      if (action.service === 'system' && action.command === 'playSound') {
+        const filepath = action.args?.path;
+        if (filepath && mainWindow && !mainWindow.isDestroyed()) {
+          console.log(`Reproduciendo audio: ${filepath}`)
+          // Sonido se reproduce en ventana del programa
+          mainWindow.webContents.send('system:play-audio', filepath);
+        } else {
+          console.log('Error: No se especificó la ruta del audio');
+        }
+        continue;
+      }
+
+      if (action.service === 'twitch') {
+        const finalMsg = action.message;
+        if (isTwitchConnected) {
+          console.log("Macro Twitch:", action.message);
+          await sendTwitchMessage(action.message);
+        }  else {
+          console.log(`⚠️ (Offline) Mensaje omitido para Twitch: "${finalMsg}"`);
+        }
+        continue;
+      } 
+      
+      if (action.service === 'obs') {
+        const obs = getOBSInstance();
+        if (obs && estaConectado()) {
+          console.log(`🎬 Macro OBS: ${action.command}`);
+            
+          // Atajo inteligente: Traduce el nombre de la fuente a su ID numérico
+          if (action.command === 'SetSceneItemEnabled' && action.args.sourceName) {
+            try {
+              const { sceneItems } = await obs.call('GetSceneItemList', { sceneName: action.args.sceneName });
+              const targetItem = sceneItems.find(item => item.sourceName === action.args.sourceName);
+                    
+              if (targetItem) {
+                action.args.sceneItemId = targetItem.sceneItemId; // Inyecta el ID correcto
+              } else {
+                console.log(`⚠️ OBS: No se encontró "${action.args.sourceName}" en "${action.args.sceneName}"`);
+                continue;
+              }
+            } catch (e) {
+              console.error("Error buscando ID en OBS:", e);
+            }
+          }
+
+          await obs.call(action.command, action.args || {});
+        } else {
+          console.log("⚠️ OBS no conectado.");
+        }
+      }
+    } catch (error) {
+        console.error("Error en macro:", error.message);
+    }
+  }
 }
 
 async function triggerAutomation(platform, eventName, eventData) {
@@ -277,6 +289,17 @@ async function triggerAutomation(platform, eventName, eventData) {
   console.log(`EVENTO: [${platform.toUpperCase()}] -> ${eventName}`);
   
   if (currentButtonsData.length === 0) return;
+
+  let escenaActual = "Desconocida";
+  const obs = getOBSInstance();
+  if (obs && estaConectado()) {
+    try {
+      const { sceneName } = await obs.call('GetCurrentProgramScene');
+      escenaActual = sceneName;
+    } catch (e) {
+      console.warn("No se pudo obtener escena actual en OBS");
+    }
+  }
 
   currentButtonsData.forEach(async (button) => {
     if (!button.commands) return;
@@ -321,7 +344,11 @@ async function triggerAutomation(platform, eventName, eventData) {
     if (commandsToExecute.length > 0) {
         console.log(`Ejecutando botón: "${button.label}"`);
 
-        const normalizedContext = { ...eventData };
+        const normalizedContext = { 
+          ...eventData,
+          escenaActual: escenaActual,
+          ...globalVariables
+        };
         
         if (platform === 'twitch') {
             // Mapeamos los datos para crear etiquetas estándar
