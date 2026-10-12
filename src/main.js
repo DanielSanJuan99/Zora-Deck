@@ -39,8 +39,6 @@ if (!fs.existsSync(USER_DATA_FOLDER)) {
     fs.mkdirSync(USER_DATA_FOLDER, { recursive: true });
 }
 
-let globalVariables = {};
-
 function loadConfigList(filePath) {
     try {
         if (fs.existsSync(filePath)) {
@@ -109,10 +107,19 @@ ipcMain.on('update-buttons-logic', (event, buttons) => {
     console.log("LÓGICA SINCRONIZADA: Botones activos:", currentButtonsData.length);
 });
 
-ipcMain.on('test-commands-execution', (event, commands) => {
+ipcMain.on('test-commands-execution', async (event, commands) => {
     console.log("EJECUCIÓN MANUAL INICIADA");
     abortMacroFlag = false;
-    executeMacro(commands);
+
+    const escenaAct = await getActiveSceneName();
+    const testContext = {
+        escenaActual: escenaAct,
+        ...globalVariables,
+        usuario: "ZoraTester", // Nombre falso para probar si el texto de la alerta funciona
+        mensaje: "Mensaje de prueba",
+        recompensa: "Recompensa de prueba"
+    };
+    executeMacro(commands, testContext);
 });
 
 ipcMain.on('stop-macro-execution', () => {
@@ -200,10 +207,14 @@ async function executeMacro(commands, context = {}) {
 
       // Guardar Variable
       if (cmd.type === 'setVariable') {
+        if (typeof globalVariables === 'undefined') global.globalVariables = {};
+        
         const varName = cmd.variable;
         // applyContext evaluará si el valor es texto estático o dinámico (ej. ${escenaActual})
         const varValue = applyContext(cmd.value, context);
-        globalVariables[varName] = varName;
+        globalVariables[varName] = varValue;
+        context[varName] = varValue;
+
         console.log(`Variable guardada: ${varName} = ${varValue}`);
         continue;
       }
@@ -295,22 +306,28 @@ async function executeMacro(commands, context = {}) {
   }
 }
 
+async function getActiveSceneName() {
+  const obs = getOBSInstance();
+  if (obs && estaConectado()) {
+    try {
+      const res = await obs.call('GetCurrentProgramScene');
+      return res.sceneName || res.currentProgramSceneName || "Desconocida";
+    } catch (e) {
+      console.warn("No se pudo obtener escena actual en OBS");
+    }
+  }
+  return "Desconocida";
+}
+
+let globalVariables = {};
+
 async function triggerAutomation(platform, eventName, eventData) {
   abortMacroFlag = false
   console.log(`EVENTO: [${platform.toUpperCase()}] -> ${eventName}`);
   
   if (currentButtonsData.length === 0) return;
 
-  let escenaActual = "Desconocida";
-  const obs = getOBSInstance();
-  if (obs && estaConectado()) {
-    try {
-      const { sceneName } = await obs.call('GetCurrentProgramScene');
-      escenaActual = sceneName;
-    } catch (e) {
-      console.warn("No se pudo obtener escena actual en OBS");
-    }
-  }
+  let escenaActual = await getActiveSceneName();
 
   currentButtonsData.forEach(async (button) => {
     if (!button.commands) return;
