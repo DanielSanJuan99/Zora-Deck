@@ -8,6 +8,8 @@ import started from 'electron-squirrel-startup';
 import { conectarOBS, estaConectado, getOBSInstance, setOBSStatusCallback } from './obs-websocket.js';
 import { setupTwitch, saveInitialTokens, sendTwitchMessage, logoutTwitch, timeoutTwitchUser } from './twitch-auth.js';
 
+app.disableHardwareAcceleration();
+
 // --- CONFIGURACIÓN DE RUTAS DINÁMICAS (CORRECCIÓN VITE) ---
 const isDev = !app.isPackaged;
 
