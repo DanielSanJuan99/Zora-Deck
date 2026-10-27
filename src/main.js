@@ -525,8 +525,11 @@ ipcMain.on('twitch:auth-request', async (event) => {
     width: 500, height: 700, parent: mainWindow, modal: true, show: false, autoHideMenuBar: true,
     webPreferences: { nodeIntegration: false }
   });
+
+  await authWindow.webContents.session.clearStorageData();
+
   const scopes = encodeURIComponent('chat:read chat:edit channel:read:redemptions channel:read:subscriptions moderator:read:followers moderator:manage:banned_users');
-  const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${scopes}`;
+  const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${scopes}force_verify=true`;
   authWindow.loadURL(authUrl);
   authWindow.once('ready-to-show', () => authWindow.show());
   
