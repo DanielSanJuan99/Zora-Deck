@@ -525,7 +525,10 @@ ipcMain.on('twitch:auth-request', async (event) => {
   let isResponded = false;
   const authWindow = new BrowserWindow({
     width: 500, height: 700, parent: mainWindow, modal: true, show: false, autoHideMenuBar: true,
-    webPreferences: { nodeIntegration: false }
+    webPreferences: { 
+      nodeIntegration: false,
+      partition: 'temp:twitch-auth'
+    }
   });
 
   await authWindow.webContents.session.clearStorageData();
